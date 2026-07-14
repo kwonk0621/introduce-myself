@@ -11,8 +11,8 @@ body {
     display: flex;
     justify-content: center;
     align-items: center;
-    background: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 50%, #f0f9ff 100%);
-    color: #1e293b;
+    background: radial-gradient(circle at 50% 50%, #0a0f1d 0%, #030712 100%);
+    color: #ffffff;
     overflow: hidden;
     position: relative;
 }
@@ -22,26 +22,26 @@ body::before, body::after {
     content: '';
     position: absolute;
     border-radius: 50%;
-    filter: blur(100px);
+    filter: blur(120px);
     z-index: 1;
-    opacity: 0.35;
+    opacity: 0.25;
     animation: float 12s ease-in-out infinite alternate;
 }
 
 body::before {
-    width: 300px;
-    height: 300px;
-    background: linear-gradient(45deg, #7dd3fc, #38bdf8);
-    top: 15%;
-    left: 15%;
+    width: 350px;
+    height: 350px;
+    background: linear-gradient(45deg, #00f2fe, #4facfe);
+    top: 10%;
+    left: 10%;
 }
 
 body::after {
-    width: 400px;
-    height: 400px;
-    background: linear-gradient(45deg, #c084fc, #818cf8);
-    bottom: 10%;
-    right: 10%;
+    width: 450px;
+    height: 450px;
+    background: linear-gradient(45deg, #a855f7, #6366f1);
+    bottom: 5%;
+    right: 5%;
     animation-delay: -6s;
 }
 
@@ -56,16 +56,16 @@ body::after {
 
 /* Profile Card styling with Glassmorphism */
 .profile-card {
-    background: rgba(255, 255, 255, 0.45);
-    backdrop-filter: blur(25px);
-    -webkit-backdrop-filter: blur(25px);
-    border: 1px solid rgba(255, 255, 255, 0.4);
+    background: rgba(10, 15, 30, 0.65);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 24px;
     padding: 40px;
     width: 90%;
     max-width: 420px;
     text-align: center;
-    box-shadow: 0 20px 50px rgba(15, 23, 42, 0.08);
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
     z-index: 10;
     transform: translateY(20px);
     opacity: 0;
@@ -75,8 +75,8 @@ body::after {
 
 .profile-card:hover {
     transform: translateY(-5px);
-    box-shadow: 0 30px 60px rgba(15, 23, 42, 0.12), 0 0 25px rgba(56, 189, 248, 0.3);
-    border-color: rgba(255, 255, 255, 0.6);
+    box-shadow: 0 30px 60px rgba(0, 0, 0, 0.7), 0 0 20px rgba(6, 182, 212, 0.2);
+    border-color: rgba(255, 255, 255, 0.15);
 }
 
 @keyframes fadeInUp {
@@ -110,8 +110,8 @@ body::after {
     height: 100%;
     object-fit: cover;
     border-radius: 50%;
-    border: 4px solid #e0f2fe;
-    background-color: #f0f9ff;
+    border: 4px solid #0f172a;
+    background-color: #0b0f19;
 }
 
 /* Typography styling */
@@ -120,57 +120,44 @@ body::after {
     font-weight: 700;
     margin-bottom: 8px;
     letter-spacing: -0.5px;
-    background: linear-gradient(135deg, #0f172a 0%, #334155 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
+    color: #ffffff;
 }
 
 .title {
     font-size: 1rem;
     font-weight: 600;
-    color: #0284c7;
+    color: #ffffff;
     margin-bottom: 24px;
     text-transform: uppercase;
     letter-spacing: 2px;
 }
 
 .greeting {
-    font-size: 1.8rem;
-    font-weight: 800;
-    line-height: 1.4;
+    font-size: 1.1rem;
+    font-weight: 400;
+    line-height: 1.6;
+    color: #ffffff;
     margin-bottom: 32px;
-    background: linear-gradient(to right, #ff4b4b, #ff8f3d, #eab308, #22c55e, #3d9dff, #b53dff, #ff4b4b);
-    background-size: 200% auto;
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    animation: rainbow-flow 3s linear infinite;
-    filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.06));
-}
-
-@keyframes rainbow-flow {
-    to {
-        background-position: 200% center;
-    }
 }
 
 /* Dynamic Button */
 .btn-contact {
     display: inline-block;
     padding: 12px 32px;
-    background: linear-gradient(135deg, #38bdf8 0%, #3b82f6 100%);
-    color: #ffffff;
+    background: linear-gradient(135deg, #00f2fe 0%, #4facfe 100%);
+    color: #030712;
     text-decoration: none;
     border-radius: 50px;
-    font-weight: 600;
+    font-weight: 700;
     font-size: 0.95rem;
     letter-spacing: 0.5px;
-    box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
+    box-shadow: 0 4px 15px rgba(0, 242, 254, 0.3);
     transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .btn-contact:hover {
     transform: scale(1.05);
-    box-shadow: 0 6px 20px rgba(59, 130, 246, 0.5);
+    box-shadow: 0 6px 20px rgba(0, 242, 254, 0.5);
 }
 
 .btn-contact:active {
