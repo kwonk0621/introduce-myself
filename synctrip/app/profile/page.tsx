@@ -507,7 +507,7 @@ export default function ProfilePage() {
 
         {/* C. PREVIEW MODE FOR MATCHING PROFILE (Image Reference 5) */}
         {previewMode && (
-          <div className="bg-white min-h-screen relative flex flex-col pb-24">
+          <div className="absolute inset-0 bg-white z-40 flex flex-col overflow-y-auto no-scrollbar pb-24">
             
             {/* Top Segment indicators like Instagram stories */}
             <div className="px-4 pt-4 flex gap-1 z-10 bg-white">

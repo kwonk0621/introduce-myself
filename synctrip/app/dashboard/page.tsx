@@ -4,7 +4,8 @@ import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { 
   Bell, Menu, Compass, Sparkles, CheckCircle2, ChevronRight, HelpCircle, 
-  MapPin, UserCheck, School, Footprints, MessageSquare, ArrowRight, X 
+  MapPin, UserCheck, School, Footprints, MessageSquare, ArrowRight, X,
+  Home, MoreVertical, ArrowLeft
 } from "lucide-react";
 import { storage, UserProfile, TravelPreferences, MockUser } from "@/lib/storage";
 import BottomNav from "@/components/BottomNav";
@@ -42,6 +43,104 @@ export default function DashboardPage() {
     );
   }
 
+  const getFlag = (country: string) => {
+    const flags: { [key: string]: string } = {
+      일본: "🇯🇵",
+      이탈리아: "🇮🇹",
+      프랑스: "🇫🇷",
+      홍콩: "🇭🇰",
+      미국: "🇺🇸",
+      태국: "🇹🇭",
+      스페인: "🇪🇸",
+      베트남: "🇻🇳",
+      영국: "🇬🇧",
+      독일: "🇩🇪",
+      한국: "🇰🇷",
+      대한민국: "🇰🇷",
+      대만: "🇹🇼",
+      필리핀: "🇵🇭",
+      캐나다: "🇨🇦",
+      오스트리아: "🇦🇹",
+      스위스: "🇨🇭",
+      싱가포르: "🇸🇬",
+      몽골: "🇲🇳",
+      이집트: "🇪🇬",
+      이스라엘: "🇮🇱",
+      호주: "🇦🇺"
+    };
+    return flags[country] || "📍";
+  };
+
+  const isWishCountryMatch = (country: string) => {
+    if (!preferences) return false;
+    return (preferences.wish_countries || []).includes(country) || (preferences.travel_destinations || []).includes(country);
+  };
+
+  const isVisitedCountryMatch = (country: string) => {
+    if (!preferences) return false;
+    return (preferences.visited_countries || []).includes(country);
+  };
+
+  const isPlanningMatch = (style: string) => {
+    if (!preferences) return false;
+    return preferences.planning_style === style;
+  };
+
+  const isSmokingMatch = (smoking: string) => {
+    if (!preferences) return false;
+    return preferences.smoking === smoking;
+  };
+
+  const isDrinkingMatch = (drinking: string) => {
+    if (!preferences) return false;
+    return preferences.drinking === drinking;
+  };
+
+  const isAgeMatch = (age: string) => {
+    if (!preferences) return false;
+    return (preferences.companion_ages || []).includes(age);
+  };
+
+  const isCompanionTypeMatch = (type: string) => {
+    if (!preferences) return false;
+    return (preferences.companion_types || []).includes(type);
+  };
+
+  const isMbtiMatch = (mbti: string) => {
+    if (!profile) return false;
+    return profile.mbti === mbti;
+  };
+
+  const isLanguageMatch = (lang: string) => {
+    if (!profile) return false;
+    return (profile.languages || []).includes(lang);
+  };
+
+  const isDestMatch = (dest: string) => {
+    if (!preferences) return false;
+    return (preferences.travel_destinations || []).includes(dest);
+  };
+
+  const isTravelTypeMatch = (type: string) => {
+    if (!preferences) return false;
+    return (preferences.travel_types || []).includes(type);
+  };
+
+  const isFactorMatch = (factor: string) => {
+    if (!preferences) return false;
+    return (preferences.important_factors || []).includes(factor);
+  };
+
+  const isStepsMatch = (steps: string) => {
+    if (!preferences) return false;
+    return preferences.max_steps === steps;
+  };
+
+  const isAccMatch = (acc: string) => {
+    if (!preferences) return false;
+    return (preferences.accommodation_types || []).includes(acc);
+  };
+
   // Country filters
   const countries = ["전체", "일본", "프랑스", "홍콩", "이탈리아"];
 
@@ -68,6 +167,21 @@ export default function DashboardPage() {
     return user.preferences.max_steps === preferences.max_steps;
   });
 
+  // 같은 MBTI의 동행
+  const sameMbtiMatches = mockUsers.filter(user => {
+    return user.profile.mbti === profile.mbti;
+  });
+
+  // 선호하는 여행지가 같아요
+  const sameDestMatches = mockUsers.filter(user => {
+    return user.preferences.travel_destinations.some(dest => preferences.travel_destinations.includes(dest));
+  });
+
+  // 여행 타입이 같아요
+  const sameTravelTypeMatches = mockUsers.filter(user => {
+    return user.preferences.travel_types.some(type => preferences.travel_types.includes(type));
+  });
+
   const handleSayHi = (partnerId: string) => {
     storage.createMatchRequest(partnerId);
     const rooms = storage.getChatRooms();
@@ -75,6 +189,48 @@ export default function DashboardPage() {
     const roomId = existingRoom ? existingRoom.id : `room-${Date.now()}`;
     setSelectedMock(null);
     router.push(`/chat/${roomId}`);
+  };
+
+  const generateAiReport = (mock: MockUser) => {
+    if (!profile || !preferences) return "";
+
+    const userPref = preferences;
+    const partnerPref = mock.preferences;
+
+    let planningMatch = "";
+    if (userPref.planning_style === partnerPref.planning_style) {
+      planningMatch = `계획 스타일이 똑같이 '${userPref.planning_style}'이라서 동선이나 일정을 조율하기에 가장 완벽한 짝꿍입니다.`;
+    } else {
+      planningMatch = `계획 스타일은 '${partnerPref.planning_style}'(나의 스타일: '${userPref.planning_style}')로, 서로의 단점을 보완해줄 수 있는 상호보완적 관계입니다.`;
+    }
+
+    let activityMatch = "";
+    if (userPref.max_steps === partnerPref.max_steps) {
+      activityMatch = `하루 목표 활동량이 '${userPref.max_steps}'로 서로 같아, 지치거나 템포가 흐트러지지 않고 발맞춰 걸을 수 있습니다.`;
+    } else {
+      activityMatch = `하루 활동 템포는 '${partnerPref.max_steps}'보 수준으로, 서로의 체력과 휴식 시간을 적절히 배려하면 쾌적한 도보 여행이 가능합니다.`;
+    }
+
+    let styleMatch = "";
+    const commonStyles = partnerPref.travel_types?.filter(x => userPref.travel_types?.includes(x)) || [];
+    if (commonStyles.length > 0) {
+      styleMatch = `두 분 모두 '${commonStyles.slice(0, 2).join(", ")}' 여행 스타일을 선호하여 관심 있는 명소나 일정을 공유하기에 매우 좋습니다.`;
+    } else {
+      styleMatch = `상대방은 '${partnerPref.travel_types?.slice(0, 2).join(", ")}' 취향을 가지고 있어 색다른 매력의 여행을 경험해볼 수 있습니다.`;
+    }
+
+    let habitMatch = "";
+    if (userPref.smoking === partnerPref.smoking) {
+      if (userPref.smoking === "비흡연") {
+        habitMatch = `또한 두 분 모두 비흡연자여서 비흡연 공간 탐방 등에서 매우 높은 쾌적함을 공유할 것입니다.`;
+      } else {
+        habitMatch = `또한 흡연 성향이 유사하여 동선 이동 중에 어색함 없이 조율이 수월합니다.`;
+      }
+    } else {
+      habitMatch = `또한 흡연 성향에 다소 차이(나: ${userPref.smoking}, 상대: ${partnerPref.smoking})가 있으므로 사전에 서로를 위한 가벼운 에티켓 조율이 필요합니다.`;
+    }
+
+    return `${planningMatch} ${activityMatch} ${styleMatch} ${habitMatch}`;
   };
 
   // Find the highest match for today's match card
@@ -255,6 +411,167 @@ export default function DashboardPage() {
           </div>
         </div>
 
+        {/* Same MBTI Matches (Image Reference 1) */}
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-black text-gray-950 flex items-center gap-1.5">
+              <span>🌈</span>
+              같은 MBTI의 동행이에요
+            </h2>
+            <span className="text-[10px] font-bold text-gray-400 cursor-pointer hover:text-gray-600">더 보기</span>
+          </div>
+
+          <div className="flex gap-4 overflow-x-auto no-scrollbar py-1">
+            {sameMbtiMatches.length === 0 ? (
+              <div className="bg-white border border-gray-100 rounded-3xl p-6 text-center w-full">
+                <p className="text-xs text-gray-400">같은 MBTI인 동행이 아직 없습니다.</p>
+              </div>
+            ) : (
+              sameMbtiMatches.map(user => {
+                const companionTag = user.preferences.companion_types[0] || "전 일정";
+                const destTag = user.preferences.travel_destinations[0] || "바다";
+                return (
+                  <div
+                    key={user.profile.id}
+                    onClick={() => setSelectedMock(user)}
+                    className="flex-shrink-0 w-44 bg-white border border-gray-100 rounded-3xl overflow-hidden shadow-sm hover:border-blue-200 transition cursor-pointer hover-card-trigger"
+                  >
+                    <div className="relative h-40 w-full bg-slate-50">
+                      <img 
+                        src={user.profile.avatar_url} 
+                        alt={user.profile.name}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                    <div className="p-3">
+                      <div className="flex items-center gap-1 mb-0.5">
+                        <span className="font-black text-xs text-gray-900 truncate">{user.profile.name}</span>
+                        {user.profile.is_identity_verified && (
+                          <span className="inline-flex items-center justify-center w-3.5 h-3.5 bg-emerald-500 text-white rounded-full text-[8px] font-black">✓</span>
+                        )}
+                      </div>
+                      <p className="text-[10px] text-gray-400 font-semibold mb-2">
+                        {user.profile.age_group.split(" ")[0]} · {user.profile.gender} · {user.profile.mbti}
+                      </p>
+                      <div className="text-[11px] font-black text-emerald-500 truncate">
+                        {companionTag} · {destTag}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </div>
+
+        {/* Same Destination Matches (Image Reference 2) */}
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-black text-gray-950 flex items-center gap-1.5">
+              <span>📌</span>
+              선호하는 여행지가 같아요
+            </h2>
+            <span className="text-[10px] font-bold text-gray-400 cursor-pointer hover:text-gray-600">더 보기</span>
+          </div>
+
+          <div className="flex gap-4 overflow-x-auto no-scrollbar py-1">
+            {sameDestMatches.length === 0 ? (
+              <div className="bg-white border border-gray-100 rounded-3xl p-6 text-center w-full">
+                <p className="text-xs text-gray-400">선호하는 여행지가 같은 동행이 아직 없습니다.</p>
+              </div>
+            ) : (
+              sameDestMatches.map(user => {
+                const companionTag = user.preferences.companion_types[0] || "전 일정";
+                const overlaps = user.preferences.travel_destinations.filter(d => preferences.travel_destinations.includes(d));
+                const destTag = overlaps.join(", ") || user.preferences.travel_destinations[0] || "바다";
+                return (
+                  <div
+                    key={user.profile.id}
+                    onClick={() => setSelectedMock(user)}
+                    className="flex-shrink-0 w-44 bg-white border border-gray-100 rounded-3xl overflow-hidden shadow-sm hover:border-blue-200 transition cursor-pointer hover-card-trigger"
+                  >
+                    <div className="relative h-40 w-full bg-slate-50">
+                      <img 
+                        src={user.profile.avatar_url} 
+                        alt={user.profile.name}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                    <div className="p-3">
+                      <div className="flex items-center gap-1 mb-0.5">
+                        <span className="font-black text-xs text-gray-900 truncate">{user.profile.name}</span>
+                        {user.profile.is_identity_verified && (
+                          <span className="inline-flex items-center justify-center w-3.5 h-3.5 bg-emerald-500 text-white rounded-full text-[8px] font-black">✓</span>
+                        )}
+                      </div>
+                      <p className="text-[10px] text-gray-400 font-semibold mb-2">
+                        {user.profile.age_group.split(" ")[0]} · {user.profile.gender} · {user.profile.mbti}
+                      </p>
+                      <div className="text-[11px] font-black text-emerald-500 truncate">
+                        {companionTag} · {destTag}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </div>
+
+        {/* Same Travel Type Matches (Image Reference 3) */}
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-black text-gray-950 flex items-center gap-1.5">
+              <span>💎</span>
+              여행 타입이 같아요
+            </h2>
+            <span className="text-[10px] font-bold text-gray-400 cursor-pointer hover:text-gray-600">더 보기</span>
+          </div>
+
+          <div className="flex gap-4 overflow-x-auto no-scrollbar py-1">
+            {sameTravelTypeMatches.length === 0 ? (
+              <div className="bg-white border border-gray-100 rounded-3xl p-6 text-center w-full">
+                <p className="text-xs text-gray-400">선호하는 여행 타입이 같은 동행이 아직 없습니다.</p>
+              </div>
+            ) : (
+              sameTravelTypeMatches.map(user => {
+                const companionTag = user.preferences.companion_types[0] || "전 일정";
+                const overlaps = user.preferences.travel_types.filter(t => preferences.travel_types.includes(t));
+                const typeTag = overlaps.slice(0, 2).join(" · ") || user.preferences.travel_types.slice(0, 2).join(" · ");
+                return (
+                  <div
+                    key={user.profile.id}
+                    onClick={() => setSelectedMock(user)}
+                    className="flex-shrink-0 w-44 bg-white border border-gray-100 rounded-3xl overflow-hidden shadow-sm hover:border-blue-200 transition cursor-pointer hover-card-trigger"
+                  >
+                    <div className="relative h-40 w-full bg-slate-50">
+                      <img 
+                        src={user.profile.avatar_url} 
+                        alt={user.profile.name}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                    <div className="p-3">
+                      <div className="flex items-center gap-1 mb-0.5">
+                        <span className="font-black text-xs text-gray-900 truncate">{user.profile.name}</span>
+                        {user.profile.is_identity_verified && (
+                          <span className="inline-flex items-center justify-center w-3.5 h-3.5 bg-emerald-500 text-white rounded-full text-[8px] font-black">✓</span>
+                        )}
+                      </div>
+                      <p className="text-[10px] text-gray-400 font-semibold mb-2">
+                        {user.profile.age_group.split(" ")[0]} · {user.profile.gender} · {user.profile.mbti}
+                      </p>
+                      <div className="text-[11px] font-black text-emerald-500 truncate">
+                        {companionTag} · {typeTag}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </div>
+
         {/* 3. E와 I, 우리는 환상의 짝꿍! (Personality chemistry) */}
         <div className="space-y-3">
           <div className="flex items-center justify-between">
@@ -341,166 +658,496 @@ export default function DashboardPage() {
           </div>
 
           <div className="flex gap-4 overflow-x-auto no-scrollbar py-1">
-            {stepsMatches.map(user => (
-              <div
-                key={user.profile.id}
-                onClick={() => setSelectedMock(user)}
-                className="flex-shrink-0 w-40 bg-white border border-gray-100 rounded-2xl p-3 shadow-sm hover:border-blue-200 transition cursor-pointer hover-card-trigger flex flex-col items-center"
-              >
-                <img 
-                  src={user.profile.avatar_url} 
-                  alt={user.profile.name}
-                  className="w-12 h-12 rounded-full border border-gray-100 mb-2 object-cover bg-gray-50"
-                />
-                <span className="font-bold text-xs text-gray-800 mb-0.5">{user.profile.name}</span>
-                <p className="text-[9px] text-gray-400 mb-1.5">하루 {user.preferences.max_steps}보</p>
-                <span className="text-[9px] font-extrabold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">
-                  일치율 {(user as any).matchScore || 70}%
-                </span>
-              </div>
-            ))}
+            {stepsMatches.map(user => {
+              const companionTag = user.preferences.companion_types[0] || "전 일정";
+              const stepText = `하루 ${user.preferences.max_steps.replace(" 이상", "")}`;
+              return (
+                <div
+                  key={user.profile.id}
+                  onClick={() => setSelectedMock(user)}
+                  className="flex-shrink-0 w-44 bg-white border border-gray-100 rounded-3xl overflow-hidden shadow-sm hover:border-blue-200 transition cursor-pointer hover-card-trigger"
+                >
+                  <div className="relative h-40 w-full bg-slate-50">
+                    <img 
+                      src={user.profile.avatar_url} 
+                      alt={user.profile.name}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  <div className="p-3">
+                    <div className="flex items-center gap-1 mb-0.5">
+                      <span className="font-black text-xs text-gray-900 truncate">{user.profile.name}</span>
+                      {user.profile.is_identity_verified && (
+                        <span className="inline-flex items-center justify-center w-3.5 h-3.5 bg-emerald-500 text-white rounded-full text-[8px] font-black">✓</span>
+                      )}
+                    </div>
+                    <p className="text-[10px] text-gray-400 font-semibold mb-2">
+                      {user.profile.age_group.split(" ")[0]} · {user.profile.gender} · {user.profile.mbti}
+                    </p>
+                    <div className="text-[11px] font-black text-emerald-500 truncate">
+                      {companionTag} · {stepText}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
+
+        {/* Spacer to prevent BottomNav clipping */}
+        <div className="h-28 flex-shrink-0" />
       </div>
-      {/* Spacer to prevent BottomNav clipping */}
-      <div className="h-28 flex-shrink-0" />
-    </div>
 
       {/* Bottom Sheet / Details Modal */}
       {selectedMock && (
-        <div className="absolute inset-0 bg-black/60 z-45 flex flex-col justify-end">
-          {/* Backdrop Click */}
-          <div className="flex-1" onClick={() => setSelectedMock(null)}></div>
-          
-          {/* Content Sheet */}
-          <div className="bg-white rounded-t-3xl max-h-[85%] overflow-y-auto p-5 pb-8 relative shadow-2xl flex flex-col no-scrollbar">
-            <button 
-              onClick={() => setSelectedMock(null)}
-              className="absolute top-4 right-4 p-1.5 hover:bg-gray-100 rounded-full transition"
-            >
-              <X className="w-5.5 h-5.5 text-gray-400" />
-            </button>
-
-            {/* Profile Info */}
-            <div className="flex items-center gap-4 mb-5 mt-2">
-              <img 
-                src={selectedMock.profile.avatar_url} 
-                alt={selectedMock.profile.name}
-                className="w-16 h-16 rounded-full object-cover border border-gray-100 shadow-sm bg-gray-50"
-              />
-              <div>
-                <div className="flex items-center gap-1.5">
-                  <h3 className="font-black text-lg text-gray-900">{selectedMock.profile.name}</h3>
-                  {selectedMock.profile.is_identity_verified && (
-                    <CheckCircle2 className="w-5 h-5 text-emerald-500 fill-emerald-500" />
-                  )}
-                </div>
-                <p className="text-xs text-gray-500 font-semibold mb-1">
-                  {selectedMock.profile.gender} · {selectedMock.profile.age_group} · MBTI: {selectedMock.profile.mbti}
-                </p>
-                
-                {/* Badges */}
-                <div className="flex gap-1.5">
-                  {selectedMock.profile.is_identity_verified && (
-                    <span className="inline-flex items-center gap-0.5 text-[9px] font-bold bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-full border border-emerald-100">
-                      <UserCheck className="w-3 h-3" /> 본인인증
-                    </span>
-                  )}
-                  {selectedMock.profile.is_org_verified && (
-                    <span className="inline-flex items-center gap-0.5 text-[9px] font-bold bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full border border-blue-100">
-                      <School className="w-3 h-3" /> {selectedMock.profile.org_name} 인증
-                    </span>
-                  )}
-                </div>
+        <div className="absolute inset-0 bg-white z-50 flex flex-col overflow-hidden pb-4">
+          {/* 1. Header Navigation Bar */}
+          <div className="flex-shrink-0 bg-white border-b border-gray-100">
+            <div className="h-12 px-4 flex items-center justify-between">
+              {/* Left Icons */}
+              <div className="flex items-center gap-3">
+                <button onClick={() => setSelectedMock(null)} className="p-1 hover:bg-gray-100 rounded-full transition">
+                  <ArrowLeft className="w-5.5 h-5.5 text-gray-700" />
+                </button>
+                <button onClick={() => setSelectedMock(null)} className="p-1 hover:bg-gray-100 rounded-full transition">
+                  <Home className="w-5.5 h-5.5 text-gray-700" />
+                </button>
+              </div>
+              {/* Right Icons */}
+              <div className="flex items-center gap-3">
+                <button className="p-1 hover:bg-gray-100 rounded-full transition">
+                  <MoreVertical className="w-5.5 h-5.5 text-gray-700" />
+                </button>
+                <button className="p-1 hover:bg-gray-100 rounded-full transition">
+                  <Menu className="w-5.5 h-5.5 text-gray-700" />
+                </button>
               </div>
             </div>
-
-            {/* Trust Meter */}
-            <div className="mb-6 bg-gray-50 rounded-2xl p-3.5 border border-gray-100/50">
-              <div className="flex justify-between text-xs font-bold text-gray-700 mb-1.5">
-                <span>동행 매칭 적합도</span>
-                <span className="text-primary font-black">{(selectedMock as any).matchScore || 85}%</span>
-              </div>
-              <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
-                <div 
-                  className="h-full bg-primary transition-all duration-500"
-                  style={{ width: `${(selectedMock as any).matchScore || 85}%` }}
-                ></div>
-              </div>
-            </div>
-
-            <div className="space-y-5 flex-1">
-              {/* Introduction */}
-              <div>
-                <h4 className="text-xs font-black text-gray-400 uppercase tracking-wider mb-1.5">소개글</h4>
-                <p className="text-sm text-gray-800 leading-relaxed font-medium">
-                  {selectedMock.profile.self_intro}
-                </p>
-              </div>
-
-              {/* Spoken Languages */}
-              <div>
-                <h4 className="text-xs font-black text-gray-400 uppercase tracking-wider mb-2">구사 가능 언어</h4>
-                <div className="flex flex-wrap gap-1.5">
-                  {selectedMock.profile.languages.map(lang => (
-                    <span key={lang} className="text-xs font-bold px-3 py-1 bg-gray-50 border border-gray-200 text-gray-600 rounded-full">
-                      {lang}
-                    </span>
-                  ))}
-                </div>
-              </div>
-
-              {/* Travel Preferences Tag Grid */}
-              <div>
-                <h4 className="text-xs font-black text-gray-400 uppercase tracking-wider mb-2.5">여행 스타일 태그</h4>
-                <div className="flex flex-wrap gap-1.5">
-                  <span className="text-xs font-bold px-3 py-1.5 bg-blue-50 text-blue-700 rounded-lg border border-blue-100">
-                    💡 {selectedMock.preferences.planning_style}
-                  </span>
-                  <span className="text-xs font-bold px-3 py-1.5 bg-emerald-50 text-emerald-700 rounded-lg border border-emerald-100">
-                    🚬 {selectedMock.preferences.smoking}
-                  </span>
-                  <span className="text-xs font-bold px-3 py-1.5 bg-amber-50 text-amber-700 rounded-lg border border-amber-100">
-                    🍺 {selectedMock.preferences.drinking}
-                  </span>
-                  <span className="text-xs font-bold px-3 py-1.5 bg-purple-50 text-purple-700 rounded-lg border border-purple-100">
-                    👣 하루 {selectedMock.preferences.max_steps}보
-                  </span>
-                  {selectedMock.preferences.accommodation_types.map(acc => (
-                    <span key={acc} className="text-xs font-semibold px-3 py-1.5 bg-gray-50 text-gray-600 rounded-lg border border-gray-200">
-                      🏠 {acc}
-                    </span>
-                  ))}
-                </div>
-              </div>
-
-              {/* AI Propensity Report Summary */}
-              <div className="border-t border-gray-100 pt-5">
-                <div className="bg-gradient-to-br from-blue-50/50 to-indigo-50/20 border border-blue-100/50 rounded-2xl p-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Sparkles className="w-5 h-5 text-blue-600 fill-blue-500" />
-                    <h4 className="text-sm font-black text-blue-900">AI 성향 진단서</h4>
-                  </div>
-                  <p className="text-xs font-bold text-indigo-700 bg-indigo-50/50 inline-block px-2.5 py-0.5 rounded-full mb-2">
-                    페르소나: {selectedMock.preferences.ai_summary}
-                  </p>
-                  <p className="text-xs text-gray-600 font-semibold leading-relaxed">
-                    상대방은 나와 계획 성향이 일치하고, 흡연 유무 조율이 부드러운 편이며, 여행지 선호도가 적절히 맞닿아 있습니다.
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Say Hi Button */}
-            <div className="mt-8">
-              <button
-                onClick={() => handleSayHi(selectedMock.profile.id)}
-                className="w-full py-4 bg-primary text-white rounded-2xl font-bold text-sm hover:bg-primary-dark active:scale-[0.99] transition flex items-center justify-center gap-2 shadow-lg shadow-blue-500/10"
-              >
-                <span>👋 인사하기</span>
-                <ArrowRight className="w-4 h-4" />
-              </button>
+            {/* Tabs */}
+            <div className="px-4 py-2.5 flex gap-4 bg-white">
+              <span className="text-gray-300 font-black text-sm cursor-pointer hover:text-gray-500 transition">기본 프로필</span>
+              <span className="text-gray-900 font-black text-sm cursor-pointer border-b-2 border-gray-900 pb-1">동행 프로필</span>
             </div>
           </div>
+
+          {/* 2. Scrollable Content */}
+          <div className="flex-1 overflow-y-auto px-4 pt-4 space-y-6 no-scrollbar pb-28">
+            
+            {/* Active Badge */}
+            <div className="flex justify-end">
+              <span className="text-[10px] font-black text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-100/50">
+                적극 참여중
+              </span>
+            </div>
+
+            {/* Profile Card */}
+            <div className="border border-gray-150 rounded-3xl p-4 shadow-sm bg-white">
+              <div className="relative w-full h-[320px] rounded-2xl overflow-hidden bg-gray-50 shadow-inner">
+                <img 
+                  src={selectedMock.profile.avatar_url} 
+                  alt={selectedMock.profile.name}
+                  className="w-full h-full object-cover"
+                />
+                {/* Story indicators */}
+                <div className="absolute top-3 left-4 right-4 flex gap-1.5 z-10">
+                  {[...Array(selectedMock.profile.name.length % 2 === 0 ? 4 : 3)].map((_, idx) => (
+                    <div 
+                      key={idx} 
+                      className={`h-[3px] flex-1 rounded-full ${idx === 0 ? "bg-emerald-500" : "bg-white/60"}`} 
+                    />
+                  ))}
+                </div>
+              </div>
+              
+              <div className="flex items-center justify-between mt-4">
+                <div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="font-black text-base text-gray-900">{selectedMock.profile.name}</span>
+                    {selectedMock.profile.is_identity_verified && (
+                      <span className="inline-flex items-center justify-center w-4 h-4 bg-emerald-500 text-white rounded-full text-[9px] font-bold">✓</span>
+                    )}
+                  </div>
+                  <div className="text-xs text-gray-400 font-bold mt-1">
+                    {selectedMock.profile.age_group} · {selectedMock.profile.gender} · {selectedMock.profile.mbti}
+                  </div>
+                </div>
+                <button 
+                  onClick={() => handleSayHi(selectedMock.profile.id)}
+                  className="bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2 rounded-full font-black text-xs flex items-center gap-1 shadow-sm active:scale-95 transition"
+                >
+                  👋 인사하기
+                </button>
+              </div>
+            </div>
+
+            {/* A. 자기소개 (Show only if self_intro is present) */}
+            {selectedMock.profile.self_intro && (
+              <div className="space-y-2">
+                <h4 className="text-xs font-black text-gray-400 uppercase tracking-wider flex items-center gap-1">
+                  <span>📝</span> 자기소개
+                </h4>
+                <div className="bg-gray-50 rounded-2xl p-4 text-xs font-semibold text-gray-700 leading-relaxed border border-gray-100">
+                  {selectedMock.profile.self_intro}
+                </div>
+              </div>
+            )}
+
+            {/* B. 지금 여행 상태는 */}
+            <div className="space-y-1">
+              <h4 className="text-xs font-black text-gray-400 uppercase tracking-wider flex items-center gap-1">
+                <span>🛫</span> 지금 여행 상태는
+              </h4>
+              <div className="text-sm font-black text-gray-800 border-b-2 border-gray-800 pb-1.5 inline-block">
+                계획
+              </div>
+              <div className="mt-2.5">
+                <span className="inline-block bg-blue-50 text-blue-600 border border-blue-100 rounded-2xl px-4 py-2.5 text-xs font-black">
+                  여행을 같이 계획하고 싶어요
+                </span>
+              </div>
+            </div>
+
+            {/* C. 가고 싶은 곳이 있어요 */}
+            {selectedMock.preferences.wish_countries && selectedMock.preferences.wish_countries.length > 0 && (
+              <div className="space-y-2">
+                <h4 className="text-xs font-black text-amber-600/90 uppercase tracking-wider">
+                  가고 싶은 곳이 있어요
+                </h4>
+                <div className="flex flex-wrap gap-2">
+                  {selectedMock.preferences.wish_countries.map((country, idx) => {
+                    const isMatch = isWishCountryMatch(country);
+                    return (
+                      <span 
+                        key={country} 
+                        className={`inline-flex items-center gap-1 text-xs font-black px-3.5 py-2 rounded-2xl border ${
+                          isMatch
+                            ? "border-yellow-300 bg-yellow-100 text-yellow-900 shadow-sm"
+                            : idx === 0 
+                            ? "border-amber-400 bg-amber-50/20 text-amber-900" 
+                            : "border-gray-200 bg-white text-gray-800"
+                        }`}
+                      >
+                        <span>{getFlag(country)}</span> {country}
+                      </span>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* D. 나는 X개국 여행자 */}
+            {selectedMock.preferences.visited_countries && selectedMock.preferences.visited_countries.length > 0 && (
+              <div className="space-y-2">
+                <h4 className="text-xs font-black text-gray-400 uppercase tracking-wider flex items-center gap-1">
+                  <span>🌏</span> 나는 {selectedMock.preferences.visited_countries.length}개국 여행자
+                </h4>
+                <div className="flex flex-wrap gap-2.5">
+                  {selectedMock.preferences.visited_countries.map(country => {
+                    const isMatch = isVisitedCountryMatch(country);
+                    return (
+                      <span 
+                        key={country} 
+                        className={`w-10 h-10 rounded-full flex items-center justify-center text-lg shadow-sm border ${
+                          isMatch
+                            ? "border-yellow-300 bg-yellow-100"
+                            : "border-gray-200 bg-white"
+                        }`}
+                        title={country}
+                      >
+                        {getFlag(country)}
+                      </span>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* E. 여행 계획 스타일은 */}
+            {selectedMock.preferences.planning_style && (
+              <div className="space-y-2">
+                <h4 className="text-xs font-black text-gray-400 uppercase tracking-wider flex items-center gap-1">
+                  <span>📝</span> 여행 계획 스타일은
+                </h4>
+                <div className={`border rounded-2xl p-4 ${
+                  isPlanningMatch(selectedMock.preferences.planning_style)
+                    ? "border-yellow-300 bg-yellow-50/20"
+                    : "border-amber-300 bg-amber-50/10"
+                }`}>
+                  <div className={`font-extrabold text-sm mb-1 ${
+                    isPlanningMatch(selectedMock.preferences.planning_style)
+                      ? "text-yellow-950 font-black"
+                      : "text-amber-700"
+                  }`}>
+                    {selectedMock.preferences.planning_style}
+                  </div>
+                  <div className="text-xs text-gray-500 font-semibold leading-normal">
+                    {selectedMock.preferences.planning_style === "즉흥형" 
+                      ? "후보 리스트는 있지만, 현장 분위기 보고 골라요."
+                      : selectedMock.preferences.planning_style === "계획형"
+                      ? "하루 단위로 오전/오후 핵심 일정을 정해두고 움직여요."
+                      : selectedMock.preferences.planning_style === "반반형"
+                      ? "하루 단위로 큰 틀 1~2개만 잡고, 나머진 즉흥으로 정해요."
+                      : "즉흥적이되 큰 틀만 맞추어 이동해요."}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* F. 흡연 유무는 */}
+            <div className="space-y-2">
+              <h4 className="text-xs font-black text-gray-400 uppercase tracking-wider flex items-center gap-1">
+                <span>🚬</span> 흡연 유무는
+              </h4>
+              <span className={`inline-block px-4 py-2 border text-xs font-black rounded-xl ${
+                isSmokingMatch(selectedMock.preferences.smoking)
+                  ? "bg-yellow-100 border-yellow-300 text-yellow-900 font-extrabold"
+                  : "bg-gray-50 border-gray-150 text-gray-800"
+              }`}>
+                {selectedMock.preferences.smoking}
+              </span>
+            </div>
+
+            {/* G. 음주 여부는 */}
+            <div className="space-y-2">
+              <h4 className="text-xs font-black text-gray-400 uppercase tracking-wider flex items-center gap-1">
+                <span>🍺</span> 음주 여부는
+              </h4>
+              <span className={`inline-block px-4 py-2 border text-xs font-black rounded-xl ${
+                isDrinkingMatch(selectedMock.preferences.drinking)
+                  ? "bg-yellow-100 border-yellow-300 text-yellow-900 font-extrabold"
+                  : "bg-gray-50 border-gray-150 text-gray-800"
+              }`}>
+                {selectedMock.preferences.drinking}
+              </span>
+            </div>
+
+            {/* H. 원하는 동행의 연령대는 */}
+            <div className="space-y-2">
+              <h4 className="text-xs font-black text-gray-400 uppercase tracking-wider flex items-center gap-1">
+                <span>👥</span> 원하는 동행의 연령대는
+              </h4>
+              <div className="flex flex-wrap gap-1.5">
+                {selectedMock.preferences.companion_ages.map(age => {
+                  const isMatch = isAgeMatch(age);
+                  return (
+                    <span 
+                      key={age} 
+                      className={`px-4 py-2 border text-xs font-black rounded-xl ${
+                        isMatch
+                          ? "bg-yellow-100 border-yellow-300 text-yellow-900 font-extrabold"
+                          : "bg-gray-50 border-gray-150 text-gray-800"
+                      }`}
+                    >
+                      {age}
+                    </span>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* I. 내가 찾고 있는 동행은 */}
+            <div className="space-y-2">
+              <h4 className="text-xs font-black text-gray-400 uppercase tracking-wider flex items-center gap-1">
+                <span>👀</span> 내가 찾고 있는 동행은
+              </h4>
+              <div className="flex flex-wrap gap-1.5">
+                {selectedMock.preferences.companion_types.map(type => {
+                  const isMatch = isCompanionTypeMatch(type);
+                  return (
+                    <span 
+                      key={type} 
+                      className={`px-4 py-2 text-xs font-black rounded-xl border ${
+                        isMatch
+                          ? "bg-yellow-100 border-yellow-300 text-yellow-900 font-extrabold"
+                          : type === "전 일정" 
+                          ? "border-amber-400 bg-amber-50/20 text-amber-900"
+                          : "border-gray-150 bg-gray-50 text-gray-800"
+                      }`}
+                    >
+                      {type}
+                    </span>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* J. 내 MBTI는 */}
+            <div className="space-y-2">
+              <h4 className="text-xs font-black text-gray-400 uppercase tracking-wider flex items-center gap-1">
+                <span>🌈</span> 내 MBTI는
+              </h4>
+              <span className={`inline-block px-4 py-2 border text-xs font-black rounded-xl ${
+                isMbtiMatch(selectedMock.profile.mbti)
+                  ? "bg-yellow-100 border-yellow-300 text-yellow-900 font-extrabold"
+                  : "bg-gray-50 border-gray-150 text-gray-800"
+              }`}>
+                {selectedMock.profile.mbti}
+              </span>
+            </div>
+
+            {/* K. 할 수 있는 언어는 */}
+            {selectedMock.profile.languages && selectedMock.profile.languages.length > 0 && (
+              <div className="space-y-2">
+                <h4 className="text-xs font-black text-gray-400 uppercase tracking-wider flex items-center gap-1">
+                  <span>📢</span> 할 수 있는 언어는
+                </h4>
+                <div className="flex flex-wrap gap-1.5">
+                  {selectedMock.profile.languages.map(lang => {
+                    const isMatch = isLanguageMatch(lang);
+                    return (
+                      <span 
+                        key={lang} 
+                        className={`px-4 py-2 border text-xs font-black rounded-xl ${
+                          isMatch
+                            ? "bg-yellow-100 border-yellow-300 text-yellow-900 font-extrabold"
+                            : "bg-gray-50 border-gray-150 text-gray-800"
+                        }`}
+                      >
+                        {lang}
+                      </span>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* L. 선호하는 여행지는 */}
+            <div className="space-y-2">
+              <h4 className="text-xs font-black text-gray-400 uppercase tracking-wider flex items-center gap-1">
+                <span>🚊</span> 선호하는 여행지는
+              </h4>
+              <div className="flex flex-wrap gap-1.5">
+                {selectedMock.preferences.travel_destinations.map(dest => {
+                  const isMatch = isDestMatch(dest);
+                  return (
+                    <span 
+                      key={dest} 
+                      className={`px-4 py-2 border text-xs font-black rounded-xl ${
+                        isMatch
+                          ? "bg-yellow-100 border-yellow-300 text-yellow-900 font-extrabold"
+                          : "bg-gray-50 border-gray-150 text-gray-800"
+                      }`}
+                    >
+                      {dest}
+                    </span>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* M. 추구하는 여행 타입은 */}
+            <div className="space-y-2">
+              <h4 className="text-xs font-black text-gray-400 uppercase tracking-wider flex items-center gap-1">
+                <span>✨</span> 추구하는 여행 타입은
+              </h4>
+              <div className="flex flex-wrap gap-1.5">
+                {selectedMock.preferences.travel_types.map(type => {
+                  const isMatch = isTravelTypeMatch(type);
+                  return (
+                    <span 
+                      key={type} 
+                      className={`px-3.5 py-2 border text-xs font-bold rounded-xl ${
+                        isMatch
+                          ? "bg-yellow-100 border-yellow-300 text-yellow-900 font-extrabold"
+                          : "bg-gray-50 border-gray-150 text-gray-750"
+                      }`}
+                    >
+                      {type}
+                    </span>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* N. 여행에서 중요한 것 2가지는 */}
+            <div className="space-y-2">
+              <h4 className="text-xs font-black text-gray-400 uppercase tracking-wider flex items-center gap-1">
+                <span>🔮</span> 여행에서 중요한 것 2가지는
+              </h4>
+              <div className="flex flex-wrap gap-1.5">
+                {selectedMock.preferences.important_factors.map((factor, idx) => {
+                  const isMatch = isFactorMatch(factor);
+                  return (
+                    <span 
+                      key={factor} 
+                      className={`px-4 py-2 border text-xs font-black rounded-xl ${
+                        isMatch
+                          ? "bg-yellow-100 border-yellow-300 text-yellow-900 font-extrabold"
+                          : idx === 0 
+                          ? "bg-amber-50 border-amber-250 text-amber-700" 
+                          : "bg-purple-50 border-purple-250 text-purple-700"
+                      }`}
+                    >
+                      {factor}
+                    </span>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* O. 하루 최대 걸음 수는 */}
+            <div className="space-y-2">
+              <h4 className="text-xs font-black text-gray-400 uppercase tracking-wider flex items-center gap-1">
+                <span>👟</span> 하루 최대 걸음 수는
+              </h4>
+              <span className={`inline-block px-4 py-2 border text-xs font-black rounded-xl ${
+                isStepsMatch(selectedMock.preferences.max_steps)
+                  ? "bg-yellow-100 border-yellow-300 text-yellow-900 font-extrabold"
+                  : "bg-gray-50 border-gray-150 text-gray-800"
+              }`}>
+                {selectedMock.preferences.max_steps}
+              </span>
+            </div>
+
+            {/* P. 선호 숙소 타입은 */}
+            <div className="space-y-2">
+              <h4 className="text-xs font-black text-gray-400 uppercase tracking-wider flex items-center gap-1">
+                <span>🏠</span> 선호 숙소 타입은
+              </h4>
+              <div className="flex flex-wrap gap-1.5">
+                {selectedMock.preferences.accommodation_types.map(acc => {
+                  const isMatch = isAccMatch(acc);
+                  return (
+                    <span 
+                      key={acc} 
+                      className={`px-4 py-2 border text-xs font-black rounded-xl ${
+                        isMatch
+                          ? "bg-yellow-100 border-yellow-300 text-yellow-900 font-extrabold"
+                          : "bg-gray-50 border-gray-150 text-gray-800"
+                      }`}
+                    >
+                      {acc}
+                    </span>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* AI Propensity Report Summary */}
+            <div className="border-t border-gray-100 pt-5">
+              <div className="bg-gradient-to-br from-blue-50/50 to-indigo-50/20 border border-blue-100/50 rounded-2xl p-4 shadow-sm">
+                <div className="flex items-center gap-2 mb-2">
+                  <Sparkles className="w-5 h-5 text-blue-600 fill-blue-500" />
+                  <h4 className="text-sm font-black text-blue-900">AI 성향 진단서</h4>
+                </div>
+                <p className="text-xs font-bold text-indigo-700 bg-indigo-50/50 inline-block px-2.5 py-0.5 rounded-full mb-2">
+                  페르소나: {selectedMock.preferences.ai_summary}
+                </p>
+                <p className="text-xs text-gray-600 font-semibold leading-relaxed">
+                  {generateAiReport(selectedMock)}
+                </p>
+              </div>
+            </div>
+            
+          </div>
+
+          {/* Sticky Floating Greeting Button at bottom right */}
+          <button 
+            onClick={() => handleSayHi(selectedMock.profile.id)}
+            className="absolute bottom-6 right-6 z-50 bg-emerald-500 hover:bg-emerald-600 active:scale-95 transition text-white px-5 py-3.5 rounded-full font-black text-xs flex items-center gap-1.5 shadow-lg shadow-emerald-500/25"
+          >
+            👋 인사하기
+          </button>
         </div>
       )}
 
