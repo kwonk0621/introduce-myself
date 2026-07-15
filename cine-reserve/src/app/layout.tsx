@@ -4,6 +4,7 @@ import "./globals.css";
 import { BookingProvider } from "@/context/BookingContext";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import AIAssistant from "@/components/AIAssistant";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -41,6 +42,7 @@ export default function RootLayout({
               {children}
             </main>
             <Footer />
+            <AIAssistant />
           </div>
         </BookingProvider>
       </body>
