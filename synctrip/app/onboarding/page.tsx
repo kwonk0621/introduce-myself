@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Sparkles, ArrowRight, ArrowLeft, Check, Plus, X } from "lucide-react";
+import { Sparkles, ArrowRight, ArrowLeft, Check, Plus, X, Search } from "lucide-react";
 import { storage, UserProfile, TravelPreferences } from "@/lib/storage";
 
 export default function OnboardingPage() {
@@ -36,6 +36,63 @@ export default function OnboardingPage() {
   const [accommodationTypes, setAccommodationTypes] = useState<string[]>([]);
   const [travelDestinations, setTravelDestinations] = useState<string[]>([]);
   const [travelTypes, setTravelTypes] = useState<string[]>([]);
+
+  // Country selection modal states
+  const [showCountryModal, setShowCountryModal] = useState(false);
+  const [tempSelectedCountries, setTempSelectedCountries] = useState<string[]>([]);
+  const [countrySearchQuery, setCountrySearchQuery] = useState("");
+
+  const allCountries = [
+    { name: "몽골", flag: "🇲🇳" },
+    { name: "한국", flag: "🇰🇷" },
+    { name: "일본", flag: "🇯🇵" },
+    { name: "중국", flag: "🇨🇳" },
+    { name: "키르기스스탄", flag: "🇰🇬" },
+    { name: "카자흐스탄", flag: "🇰🇿" },
+    { name: "미국", flag: "🇺🇸" },
+    { name: "베트남", flag: "🇻🇳" },
+    { name: "대만", flag: "🇹🇼" },
+    { name: "홍콩", flag: "🇭🇰" },
+    { name: "태국", flag: "🇹🇭" },
+    { name: "싱가포르", flag: "🇸🇬" },
+    { name: "필리핀", flag: "🇵🇭" },
+    { name: "말레이시아", flag: "🇲🇾" },
+    { name: "인도네시아", flag: "🇮🇩" },
+    { name: "인도", flag: "🇮🇳" },
+    { name: "영국", flag: "🇬🇧" },
+    { name: "프랑스", flag: "🇫🇷" },
+    { name: "독일", flag: "🇩🇪" },
+    { name: "이탈리아", flag: "🇮🇹" },
+    { name: "스페인", flag: "🇪🇸" },
+    { name: "스위스", flag: "🇨🇭" },
+    { name: "체코", flag: "🇨🇿" },
+    { name: "오스트리아", flag: "🇦🇹" },
+    { name: "러시아", flag: "🇷🇺" },
+    { name: "터키", flag: "🇹🇷" },
+    { name: "이집트", flag: "🇪🇬" },
+    { name: "호주", flag: "🇦🇺" },
+    { name: "뉴질랜드", flag: "🇳🇿" },
+    { name: "캐나다", flag: "🇨🇦" },
+    { name: "멕시코", flag: "🇲🇽" },
+    { name: "브라질", flag: "🇧🇷" },
+    { name: "괌", flag: "🇬🇺" },
+    { name: "하와이", flag: "🇺🇸" },
+    { name: "네팔", flag: "🇳🇵" },
+    { name: "네덜란드", flag: "🇳🇱" },
+    { name: "벨기에", flag: "🇧🇪" },
+    { name: "크로아티아", flag: "🇭🇷" },
+    { name: "포르투갈", flag: "🇵🇹" },
+    { name: "그리스", flag: "🇬🇷" },
+    { name: "헝가리", flag: "🇭🇺" },
+    { name: "폴란드", flag: "🇵🇱" },
+    { name: "스웨덴", flag: "🇸🇪" },
+    { name: "핀란드", flag: "🇫🇮" },
+    { name: "노르웨이", flag: "🇳🇴" },
+    { name: "아르헨티나", flag: "🇦🇷" },
+    { name: "칠레", flag: "🇨🇱" },
+    { name: "페루", flag: "🇵🇪" },
+    { name: "남아프리카공화국", flag: "🇿🇦" }
+  ];
 
   // Check if profile exists, redirect if it does (unless they want to reset/edit)
   useEffect(() => {
@@ -93,6 +150,51 @@ export default function OnboardingPage() {
   const destinationOptions = ["산", "바다", "도시", "시골", "소도시"];
   const travelTypeOptions = ["액티비티", "정적인", "많이 돌아다니는", "페스티벌", "투어", "랜드마크", "관광", "휴양", "카페", "스파", "미식 여행", "쇼핑", "박물관", "갤러리"];
 
+  const countryRegions = [
+    {
+      region: "아시아/오세아니아",
+      list: [
+        { name: "일본", flag: "🇯🇵" },
+        { name: "대만", flag: "🇹🇼" },
+        { name: "홍콩", flag: "🇭🇰" },
+        { name: "태국", flag: "🇹🇭" },
+        { name: "베트남", flag: "🇻🇳" },
+        { name: "싱가포르", flag: "🇸🇬" },
+        { name: "필리핀", flag: "🇵🇭" },
+        { name: "중국", flag: "🇨🇳" },
+        { name: "몽골", flag: "🇲🇳" },
+        { name: "인도네시아", flag: "🇮🇩" },
+        { name: "말레이시아", flag: "🇲🇾" },
+        { name: "호주", flag: "🇦🇺" },
+        { name: "뉴질랜드", flag: "🇳🇿" }
+      ]
+    },
+    {
+      region: "유럽",
+      list: [
+        { name: "프랑스", flag: "🇫🇷" },
+        { name: "이탈리아", flag: "🇮🇹" },
+        { name: "스페인", flag: "🇪🇸" },
+        { name: "영국", flag: "🇬🇧" },
+        { name: "독일", flag: "🇩🇪" },
+        { name: "스위스", flag: "🇨🇭" },
+        { name: "오스트리아", flag: "🇦🇹" },
+        { name: "체코", flag: "🇨🇿" },
+        { name: "헝가리", flag: "🇭🇺" }
+      ]
+    },
+    {
+      region: "아메리카/기타",
+      list: [
+        { name: "미국", flag: "🇺🇸" },
+        { name: "캐나다", flag: "🇨🇦" },
+        { name: "괌", flag: "🇬🇺" },
+        { name: "터키", flag: "🇹🇷" },
+        { name: "이집트", flag: "🇪🇬" }
+      ]
+    }
+  ];
+
   const handleToggle = (item: string, list: string[], setList: React.Dispatch<React.SetStateAction<string[]>>, limit?: number) => {
     if (list.includes(item)) {
       setList(list.filter(i => i !== item));
@@ -114,6 +216,11 @@ export default function OnboardingPage() {
       setVisitedCountries([...visitedCountries, newCountry]);
       setNewCountry("");
     }
+  };
+
+  const getFlag = (countryName: string) => {
+    const found = allCountries.find(c => c.name === countryName);
+    return found ? found.flag : "📍";
   };
 
   const handleComplete = async () => {
@@ -509,36 +616,48 @@ export default function OnboardingPage() {
 
             {/* 다녀온 나라 */}
             <div className="space-y-2">
-              <label className="text-sm font-bold text-gray-700">다녀온 나라</label>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={newCountry}
-                  onChange={e => setNewCountry(e.target.value)}
-                  placeholder="예: 일본, 미국, 태국"
-                  className="flex-1 p-3 border border-gray-200 rounded-xl focus:outline-none focus:border-primary text-sm"
-                  onKeyDown={e => e.key === "Enter" && handleAddCountry()}
-                />
-                <button
-                  onClick={handleAddCountry}
-                  className="p-3 bg-gray-100 hover:bg-gray-200 rounded-xl transition text-sm font-bold"
-                >
-                  <Plus className="w-5 h-5 text-gray-600" />
-                </button>
+              <label className="text-sm font-bold text-gray-700 flex items-center gap-1.5">
+                <span>🪐</span> 내가 다녀온 나라
+              </label>
+              
+              {/* Dropdown styled button block (matching Reference Image 4) */}
+              <div 
+                onClick={() => {
+                  setTempSelectedCountries(visitedCountries);
+                  setCountrySearchQuery("");
+                  setShowCountryModal(true);
+                }}
+                className="border border-gray-200 rounded-xl p-3.5 flex items-center justify-between cursor-pointer bg-white"
+              >
+                <span className="text-gray-450 text-sm font-semibold">
+                  {visitedCountries.length > 0 
+                    ? `${visitedCountries.slice(0, 3).join(", ")}${visitedCountries.length > 3 ? ` 외 ${visitedCountries.length - 3}개국` : ""}`
+                    : "나라 선택"
+                  }
+                </span>
+                <span className="text-gray-400">▼</span>
               </div>
-              <div className="flex flex-wrap gap-1.5 pt-1">
-                {visitedCountries.map(country => (
-                  <span
-                    key={country}
-                    className="inline-flex items-center gap-1 px-3 py-1 bg-gray-50 border border-gray-200 rounded-full text-xs text-gray-600"
-                  >
-                    {country}
-                    <button onClick={() => setVisitedCountries(visitedCountries.filter(c => c !== country))}>
-                      <X className="w-3.5 h-3.5 text-gray-400 hover:text-gray-600" />
-                    </button>
-                  </span>
-                ))}
-              </div>
+
+              {/* Selected country tags display */}
+              {visitedCountries.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 pt-1">
+                  {visitedCountries.map(country => (
+                    <span
+                      key={country}
+                      className="inline-flex items-center gap-1 px-3 py-1 bg-emerald-50/50 border border-emerald-100 rounded-full text-xs text-emerald-800 font-bold"
+                    >
+                      <span>{getFlag(country)}</span>
+                      <span>{country}</span>
+                      <button 
+                        type="button"
+                        onClick={() => setVisitedCountries(visitedCountries.filter(c => c !== country))}
+                      >
+                        <X className="w-3.5 h-3.5 text-emerald-600 hover:text-emerald-800" />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* 중요 요소 */}
@@ -692,6 +811,105 @@ export default function OnboardingPage() {
           </button>
         </div>
       </div>
+
+      {/* Country Selection Bottom Sheet Modal (Image Reference 3 & 5) */}
+      {showCountryModal && (
+        <div className="absolute inset-0 bg-black/50 z-[60] flex flex-col justify-end animate-fadeIn">
+          {/* Overlay click to close */}
+          <div className="absolute inset-0 z-0 bg-black/20" onClick={() => setShowCountryModal(false)} />
+          
+          {/* Slide up content container */}
+          <div className="relative z-10 w-full bg-white rounded-t-3xl h-[80%] flex flex-col shadow-2xl animate-slideUp overflow-hidden">
+            {/* Modal Header */}
+            <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between bg-white">
+              <h3 className="text-base font-black text-gray-900">나라 선택</h3>
+              <button 
+                onClick={() => setShowCountryModal(false)}
+                className="p-1 hover:bg-gray-100 rounded-full transition"
+              >
+                <X className="w-6 h-6 text-gray-800" />
+              </button>
+            </div>
+
+            {/* Search Input Bar (Matching screenshot search field style) */}
+            <div className="px-5 py-3 border-b border-gray-50 bg-white">
+              <div className="relative flex items-center bg-gray-50 border border-gray-100 rounded-2xl px-4 py-3">
+                <Search className="w-4 h-4 text-gray-400 mr-2 flex-shrink-0" />
+                <input
+                  type="text"
+                  value={countrySearchQuery}
+                  onChange={e => setCountrySearchQuery(e.target.value)}
+                  placeholder="나라를 검색해보세요."
+                  className="w-full bg-transparent focus:outline-none text-xs font-semibold text-gray-800 placeholder-gray-400"
+                />
+              </div>
+            </div>
+
+            {/* Scrollable list of countries */}
+            <div className="flex-1 overflow-y-auto px-5 divide-y divide-gray-100 no-scrollbar pb-24">
+              {(() => {
+                const filtered = countrySearchQuery.trim() 
+                  ? allCountries.filter(c => c.name.includes(countrySearchQuery.trim()))
+                  : allCountries;
+                if (filtered.length === 0) {
+                  return (
+                    <div className="py-12 text-center text-xs text-gray-400 font-semibold">
+                      검색 결과가 없습니다.
+                    </div>
+                  );
+                }
+                return filtered.map(c => {
+                  const isChecked = tempSelectedCountries.includes(c.name);
+                  return (
+                    <div
+                      key={c.name}
+                      onClick={() => {
+                        if (isChecked) {
+                          setTempSelectedCountries(tempSelectedCountries.filter(item => item !== c.name));
+                        } else {
+                          setTempSelectedCountries([...tempSelectedCountries, c.name]);
+                        }
+                      }}
+                      className="py-4.5 flex items-center justify-between cursor-pointer active:bg-gray-50 transition"
+                    >
+                      <div className="flex items-center gap-3">
+                        <span className="text-xl leading-none">{c.flag}</span>
+                        <span className="text-xs font-black text-gray-800">{c.name}</span>
+                      </div>
+                      
+                      {/* Checkbox circular outline badge */}
+                      <div className={`w-5 h-5 rounded-full border flex items-center justify-center transition-all ${
+                        isChecked
+                          ? "border-[#00c73c] bg-[#00c73c] text-white"
+                          : "border-gray-250 bg-white"
+                      }`}>
+                        {isChecked && <span className="text-[10px] font-black leading-none">✓</span>}
+                      </div>
+                    </div>
+                  );
+                });
+              })()}
+            </div>
+
+            {/* Sticky Bottom selection completion button (Image Reference 3) */}
+            <div className="absolute bottom-0 inset-x-0 p-4 bg-white border-t border-gray-100 flex flex-col z-20">
+              <button
+                onClick={() => {
+                  setVisitedCountries(tempSelectedCountries);
+                  setShowCountryModal(false);
+                }}
+                className={`w-full py-3.5 rounded-2xl text-xs font-black text-center transition active:scale-[0.99] ${
+                  tempSelectedCountries.length > 0
+                    ? "bg-[#00c73c] hover:bg-[#00b035] text-white shadow-sm shadow-emerald-500/10"
+                    : "bg-gray-200 text-gray-400 cursor-not-allowed"
+                }`}
+              >
+                {tempSelectedCountries.length}개 나라 선택 완료
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

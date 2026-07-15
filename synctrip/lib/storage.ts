@@ -1421,6 +1421,64 @@ export const storage = {
     }
   },
 
+  receiveIncomingChatRequest(): any {
+    if (typeof window === "undefined") return null;
+    const profile = this.getProfile();
+    if (!profile) return null;
+
+    // Pick a random mock user who we don't have an active chat room with
+    const rooms = this.getChatRooms();
+    const activePartnerIds = rooms.map(r => r.partner?.id);
+    const potentialPartners = INITIAL_MOCK_USERS.filter(u => !activePartnerIds.includes(u.profile.id));
+    if (potentialPartners.length === 0) return null;
+
+    const randomUser = potentialPartners[Math.floor(Math.random() * potentialPartners.length)];
+    
+    // Create the chat room
+    const roomId = this.createChatRoom(randomUser.profile.id);
+
+    // Write a first greeting message from the random user
+    const firstMessages = [
+      "안녕하세요! 프로필 보다가 성향이 너무 잘 맞으시는 것 같아서 인사드려요! 😊",
+      "반가워요! 이번에 여행 계획하시는 국가가 저랑 겹쳐서 그런데, 같이 일정 짜보실래요?",
+      "안녕하세요~ 혹시 여행 일정 중에 카페 투어나 맛집 탐방 같이하실 생각 있으신가요? ☕",
+      "반갑습니다! 저랑 매칭률이 되게 높게 뜨셔서 신기해서 메시지 드려요 ㅎㅎ",
+      "안녕하세요! 혹시 이번에 가시는 여행지에 숙소나 교통편은 다 정하셨나요?"
+    ];
+    const greetingText = firstMessages[Math.floor(Math.random() * firstMessages.length)];
+
+    const data = localStorage.getItem(STORAGE_KEYS.CHAT_MESSAGES);
+    const allMsgs = data ? JSON.parse(data) : [];
+
+    const partnerMsg = {
+      id: `msg-incoming-${Date.now()}`,
+      room_id: roomId,
+      sender_id: randomUser.profile.id,
+      message: greetingText,
+      created_at: new Date().toISOString()
+    };
+
+    allMsgs.push(partnerMsg);
+    localStorage.setItem(STORAGE_KEYS.CHAT_MESSAGES, JSON.stringify(allMsgs));
+
+    // Dispatch a global custom event to notify components that a new message arrived
+    window.dispatchEvent(new CustomEvent("synctrip_new_message", {
+      detail: { 
+        roomId, 
+        incoming: true, 
+        partnerName: randomUser.profile.name, 
+        partnerAvatar: randomUser.profile.avatar_url,
+        message: greetingText
+      }
+    }));
+
+    return {
+      roomId,
+      partner: randomUser.profile,
+      message: greetingText
+    };
+  },
+
   resetAllData(): void {
     if (typeof window === "undefined") return;
     localStorage.removeItem(STORAGE_KEYS.USER_PROFILE);

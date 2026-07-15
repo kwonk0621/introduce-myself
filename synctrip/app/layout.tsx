@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import IncomingChatListener from "@/components/IncomingChatListener";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -38,6 +39,7 @@ export default function RootLayout({
       <body className="h-screen w-screen overflow-hidden bg-gray-100 flex items-center justify-center">
         <div className="w-full max-w-md h-screen md:h-[min(850px,95dvh)] bg-white shadow-2xl flex flex-col relative md:rounded-2xl md:overflow-hidden border border-gray-100">
           <div className="flex-1 flex flex-col overflow-hidden relative">
+            <IncomingChatListener />
             {children}
           </div>
         </div>

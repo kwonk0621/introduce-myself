@@ -233,8 +233,8 @@ export default function ProfilePage() {
                     )}
                   </div>
                   
-                  <span className="text-[10px] font-bold text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">
-                    {profile.mbti ? `${profile.mbti} 선택` : "MBTI 선택"}
+                  <span className="text-[10px] font-extrabold text-gray-500 bg-gray-100 px-2.5 py-0.5 rounded-full">
+                    {profile.mbti ? profile.mbti : "MBTI"}
                   </span>
                 </div>
                 <p className="text-xs text-gray-500 font-semibold">

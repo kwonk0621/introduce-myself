@@ -25,6 +25,15 @@ export default function ChatListPage() {
     // PERSISTENCE FIXED: Removed the sessionStorage synctrip_chat_wiped clean slate code 
     // so that the user's chat history persists across pages and reloads.
     setRooms(storage.getChatRooms());
+
+    const handleNewMessage = () => {
+      setRooms(storage.getChatRooms());
+    };
+
+    window.addEventListener("synctrip_new_message", handleNewMessage);
+    return () => {
+      window.removeEventListener("synctrip_new_message", handleNewMessage);
+    };
   }, [router]);
 
   if (!profile) {

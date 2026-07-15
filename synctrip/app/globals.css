@@ -60,3 +60,31 @@ body {
 .animate-slideLeft {
   animation: slideLeft 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
+
+/* Toast Springy Slide-Down Animation */
+@keyframes slideDownBounce {
+  0% {
+    transform: translate3d(0, -150%, 0) scale(0.9);
+    opacity: 0;
+  }
+  60% {
+    transform: translate3d(0, 10%, 0) scale(1.02);
+    opacity: 0.9;
+  }
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+    opacity: 1;
+  }
+}
+.animate-fade-in-down {
+  animation: slideDownBounce 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+/* Bottom Sheet Slide-Up Animation */
+@keyframes slideUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+.animate-slideUp {
+  animation: slideUp 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
