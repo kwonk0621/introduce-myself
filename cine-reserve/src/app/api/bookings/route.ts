@@ -45,7 +45,7 @@ export async function GET(request: Request) {
       }
     });
 
-    const mapped = bookings.map(b => ({
+    const mapped = bookings.map((b: any) => ({
       id: b.id,
       userId: b.userId || 'guest',
       screenTimeId: b.screenTimeId,
@@ -55,7 +55,7 @@ export async function GET(request: Request) {
       hallName: b.screenTime.schedule.hall.name,
       playDate: b.screenTime.schedule.playDate.toISOString().split('T')[0],
       playTime: b.screenTime.startTime,
-      seats: b.bookedSeats.map(s => s.seatId),
+      seats: b.bookedSeats.map((s: any) => s.seatId),
       totalPrice: b.totalPrice,
       paymentMethod: b.paymentMethod,
       createdAt: b.createdAt.toISOString()
@@ -109,7 +109,7 @@ export async function POST(request: Request) {
       });
 
       if (existingSeats.length > 0) {
-        const conflicted = existingSeats.map(s => s.seatId);
+        const conflicted = existingSeats.map((s: any) => s.seatId);
         throw new Error(`이미 다른 고객님께서 선택하신 좌석(${conflicted.join(', ')})이 포함되어 있습니다.`);
       }
 

@@ -15,7 +15,7 @@ export async function GET(request: Request) {
   try {
     if (!prisma) {
       // Fallback
-      const filtered = mockSchedules.filter(s => s.movieId === movieId && s.theaterId === theaterId && s.date === date);
+      const filtered = mockSchedules.filter((s: any) => s.movieId === movieId && s.theaterId === theaterId && s.date === date);
       return NextResponse.json(filtered);
     }
 
@@ -33,13 +33,13 @@ export async function GET(request: Request) {
     });
 
     // Map Prisma models to Client interfaces
-    const mapped = schedules.map(s => ({
+    const mapped = schedules.map((s: any) => ({
       id: s.id,
       movieId: s.movieId,
       theaterId: s.theaterId,
       date: s.playDate.toISOString().split('T')[0],
       screenType: s.hall.screenType,
-      times: s.screenTimes.map(t => ({
+      times: s.screenTimes.map((t: any) => ({
         id: t.id,
         time: t.startTime,
         endTime: t.endTime,
