@@ -70,14 +70,18 @@ export default function BookingPage() {
     }
   };
 
-  const handleFinalPayment = () => {
+  const handleFinalPayment = async () => {
     if (!isTermsAgreed) {
       alert("약관 동의가 필요합니다.");
       return;
     }
-    const booking = completePayment(paymentMethod);
-    if (!booking) {
-      alert("예매 정보가 부족합니다.");
+    try {
+      const booking = await completePayment(paymentMethod);
+      if (!booking) {
+        alert("예매 정보가 부족합니다.");
+      }
+    } catch (err: any) {
+      alert(err.message || "결제 진행 중 오류가 발생했습니다.");
     }
   };
 

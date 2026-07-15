@@ -1,7 +1,8 @@
 "use client";
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useBooking } from '@/context/BookingContext';
+import { db } from '../lib/db';
 
 interface SeatMapProps {
   reservedSeats: string[];
@@ -11,7 +12,35 @@ interface SeatMapProps {
 
 const SeatMap: React.FC<SeatMapProps> = ({ reservedSeats, onComplete, onHeadcountChange }) => {
   const { headcount, selectedSeats, toggleSeat, selectedSchedule, selectedTheater, selectedTimeSlot } = useBooking();
+  const [liveReservedSeats, setLiveReservedSeats] = useState<string[]>(reservedSeats);
   const totalHeadcount = headcount.adult + headcount.youth + headcount.special + headcount.senior;
+
+  // Fetch initial reserved seats and subscribe to updates
+  useEffect(() => {
+    if (!selectedTimeSlot) return;
+
+    const timeSlotId = `${selectedSchedule?.id || 'default'}-${selectedTimeSlot.time}`;
+
+    const fetchInitialSeats = async () => {
+      try {
+        const seats = await db.getReservedSeats(timeSlotId);
+        setLiveReservedSeats(seats);
+      } catch (err) {
+        console.error("Failed to fetch initial reserved seats:", err);
+      }
+    };
+
+    fetchInitialSeats();
+
+    // Subscribe to realtime seat status updates
+    const unsubscribe = db.subscribeSeats(timeSlotId, (updatedSeats) => {
+      setLiveReservedSeats(updatedSeats);
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, [selectedTimeSlot, selectedSchedule]);
 
   const screenType = selectedSchedule?.screenType || '2D';
 
@@ -156,7 +185,7 @@ const SeatMap: React.FC<SeatMapProps> = ({ reservedSeats, onComplete, onHeadcoun
                   <div className="flex items-center gap-0.5 relative z-10">
                     {cols.map(col => {
                       const seatId = `${row}${col}`;
-                      const isReserved = reservedSeats.includes(seatId);
+                      const isReserved = liveReservedSeats.includes(seatId);
                       const isSelected = selectedSeats.includes(seatId);
                       const seatType = getSeatType(row, col);
                       

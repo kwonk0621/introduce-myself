@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { Movie, Theater, Schedule, ScreenTime, mockMovies, mockTheaters } from '../data/mockMovies';
+import { db } from '../lib/db';
 
 export interface Booking {
   id: string;
@@ -52,7 +53,7 @@ interface BookingContextType {
   clearSelectedSeats: () => void;
   
   // Final actions
-  completePayment: (paymentMethod: string) => Booking | null;
+  completePayment: (paymentMethod: string) => Promise<Booking | null>;
   cancelBooking: (bookingId: string) => void;
 }
 
@@ -79,20 +80,63 @@ export const BookingProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [isSearchOpen, setIsSearchOpen] = useState<boolean>(false);
 
-  // Load user and booking history from LocalStorage
+  // Load user and booking history from DB/LocalStorage
   useEffect(() => {
     const storedUser = localStorage.getItem('cgv_user');
+    let activeUser = defaultUser;
+    
     if (storedUser) {
-      setUser(JSON.parse(storedUser));
+      activeUser = JSON.parse(storedUser);
+      setUser(activeUser);
     } else {
-      // Seed default user
       localStorage.setItem('cgv_user', JSON.stringify(defaultUser));
     }
-    const storedHistory = localStorage.getItem('cgv_bookings');
-    if (storedHistory) {
-      setBookingHistory(JSON.parse(storedHistory));
-    }
-  }, []);
+
+    // Load booking history from DB
+    const loadHistory = async () => {
+      try {
+        const history = await db.getBookings(activeUser.id);
+        // Map db Booking back to context Booking interface
+        const mappedHistory: Booking[] = history.map((b: any) => {
+          const matchedMovie = mockMovies.find(m => m.title === b.movieTitle) || mockMovies[0];
+          const matchedTheater = mockTheaters.find(t => t.name === b.theaterName) || mockTheaters[0];
+          const dummySchedule: Schedule = {
+            id: b.screenTimeId,
+            movieId: matchedMovie.id,
+            theaterId: matchedTheater.id,
+            date: b.playDate,
+            screenType: '2D',
+            times: []
+          };
+          const dummyTimeSlot: ScreenTime = {
+            time: b.playTime,
+            endTime: b.playTime,
+            totalSeats: 180,
+            reservedSeats: b.seats,
+            hallName: b.hallName
+          };
+
+          return {
+            id: b.id,
+            movie: matchedMovie,
+            theater: matchedTheater,
+            schedule: dummySchedule,
+            timeSlot: dummyTimeSlot,
+            headcount: { adult: b.seats.length, youth: 0, special: 0, senior: 0 },
+            selectedSeats: b.seats,
+            totalPrice: b.totalPrice,
+            bookingDate: b.createdAt,
+            paymentMethod: b.paymentMethod
+          };
+        });
+        setBookingHistory(mappedHistory);
+      } catch (err) {
+        console.error("Failed to load booking history", err);
+      }
+    };
+
+    loadHistory();
+  }, [user?.id]);
 
   const login = (name: string, isGuest: boolean) => {
     const newUser = {
@@ -192,8 +236,8 @@ export const BookingProvider: React.FC<{ children: React.ReactNode }> = ({ child
     setSelectedSeats([]);
   };
 
-  const completePayment = (paymentMethod: string): Booking | null => {
-    if (!selectedMovie || !selectedTheater || !selectedSchedule || !selectedTimeSlot || selectedSeats.length === 0) {
+  const completePayment = async (paymentMethod: string): Promise<Booking | null> => {
+    if (!selectedMovie || !selectedTheater || !selectedSchedule || !selectedTimeSlot || selectedSeats.length === 0 || !user) {
       return null;
     }
 
@@ -203,31 +247,56 @@ export const BookingProvider: React.FC<{ children: React.ReactNode }> = ({ child
                         headcount.special * 7000 + 
                         headcount.senior * 6000;
 
-    const newBooking: Booking = {
-      id: `cgv-${Math.random().toString(36).substr(2, 9).toUpperCase()}`,
-      movie: selectedMovie,
-      theater: selectedTheater,
-      schedule: selectedSchedule,
-      timeSlot: selectedTimeSlot,
-      headcount,
-      selectedSeats,
-      totalPrice,
-      bookingDate: new Date().toISOString(),
-      paymentMethod
-    };
+    try {
+      // 1. Create the booking in DB (Supabase / LocalStorage fallback)
+      const dbBooking = await db.createBooking(
+        user.id,
+        `${selectedSchedule.id}-${selectedTimeSlot.time}`,
+        selectedMovie,
+        selectedTheater,
+        selectedSchedule,
+        selectedTimeSlot,
+        selectedSeats,
+        totalPrice,
+        paymentMethod
+      );
 
-    const updatedHistory = [newBooking, ...bookingHistory];
-    setBookingHistory(updatedHistory);
-    localStorage.setItem('cgv_bookings', JSON.stringify(updatedHistory));
-    
-    setActiveStep(5); // Go to ticket view (success)
-    return newBooking;
+      // 2. Map back to UI context booking state
+      const newBooking: Booking = {
+        id: dbBooking.id,
+        movie: selectedMovie,
+        theater: selectedTheater,
+        schedule: selectedSchedule,
+        timeSlot: selectedTimeSlot,
+        headcount,
+        selectedSeats,
+        totalPrice,
+        bookingDate: dbBooking.createdAt,
+        paymentMethod
+      };
+
+      const updatedHistory = [newBooking, ...bookingHistory];
+      setBookingHistory(updatedHistory);
+      
+      setActiveStep(5); // Go to ticket view (success)
+      return newBooking;
+    } catch (err: any) {
+      console.error("Booking error:", err);
+      throw err;
+    }
   };
 
   const cancelBooking = (bookingId: string) => {
     const updatedHistory = bookingHistory.filter(b => b.id !== bookingId);
     setBookingHistory(updatedHistory);
-    localStorage.setItem('cgv_bookings', JSON.stringify(updatedHistory));
+    // If local mock, clean localStorage too
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem('cine_reserve_bookings');
+      if (stored) {
+        const bookings = JSON.parse(stored).filter((b: any) => b.id !== bookingId);
+        localStorage.setItem('cine_reserve_bookings', JSON.stringify(bookings));
+      }
+    }
   };
 
   return (
