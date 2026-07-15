@@ -1092,9 +1092,10 @@ export function calculateMatchPercentage(
   }
 
   // 12. Wish Countries
-  if (myPref.wish_countries && otherPref.wish_countries && otherPref.wish_countries.length > 0 && myPref.wish_countries.length > 0) {
+  const myWish = myPref.wish_countries;
+  if (myWish && otherPref.wish_countries && otherPref.wish_countries.length > 0 && myWish.length > 0) {
     categories++;
-    const overlap = otherPref.wish_countries.filter(x => myPref.wish_countries.includes(x)).length;
+    const overlap = otherPref.wish_countries.filter(x => myWish.includes(x)).length;
     matches += overlap / otherPref.wish_countries.length;
   }
 
@@ -1359,12 +1360,13 @@ export const storage = {
 
     // Supabase write
     if (supabase) {
+      const client = supabase; // Capture non-nullable client
       const partner = INITIAL_MOCK_USERS.find(u => u.profile.id === partnerId);
       
       const insertProfilesAndRoom = async () => {
         try {
           // Upsert profiles to prevent foreign key violation
-          await supabase.from("profiles").upsert({
+          await client.from("profiles").upsert({
             id: profile.id,
             name: profile.name,
             avatar_url: profile.avatar_url,
@@ -1380,7 +1382,7 @@ export const storage = {
           });
 
           if (partner) {
-            await supabase.from("profiles").upsert({
+            await client.from("profiles").upsert({
               id: partner.profile.id,
               name: partner.profile.name,
               avatar_url: partner.profile.avatar_url,
@@ -1397,14 +1399,14 @@ export const storage = {
           }
 
           // Insert room
-          const { error: rError } = await supabase.from("chat_rooms").insert({
+          const { error: rError } = await client.from("chat_rooms").insert({
             id: newRoomId,
             created_at: newRoom.created_at
           });
 
           if (!rError) {
             // Insert participants
-            await supabase.from("chat_participants").insert([
+            await client.from("chat_participants").insert([
               { room_id: newRoomId, profile_id: profile.id },
               { room_id: newRoomId, profile_id: partnerId }
             ]);
