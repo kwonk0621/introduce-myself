@@ -19,19 +19,18 @@ export async function POST(request: Request) {
     }
 
     // ────────────────────────────────────────────────────────────
-    // 1. Optimize Context Size for Groq Free-Tier 12,000 TPM Limit
+    // 1. Extreme Compactness for Llama 3 Korean Tokenizer (Limit 12,000 TPM)
     // ────────────────────────────────────────────────────────────
     
-    // Movie list compaction
-    const moviesContext = mockMovies.map(m => `
-- ${m.title}: ${m.status === 'now-showing' ? '상영중' : '상영예정'} | 평점: ${m.rating} | ${m.ageLimit === 0 ? '전체관람가' : m.ageLimit + '세'} | ${m.runtime}분 | 장르: ${m.genre?.join(',')} | 감독: ${m.director}
-`).join('\n');
+    // Movie details: Extremely compact
+    const moviesContext = mockMovies
+      .map(m => `- ${m.title}(${m.status === 'now-showing' ? '상영중' : '예정'}, ${m.ageLimit === 0 ? '전체' : m.ageLimit + '세'}, ${m.runtime}분)`)
+      .join('\n');
 
-    const theatersContext = mockTheaters.map(t => `- ${t.name} (${t.location})`).join('\n');
+    const theatersContext = mockTheaters.map(t => `- ${t.name}`).join('\n');
 
-    // Filter schedules to only today and the next 2 days to drastically reduce token usage
-    const todayStr = new Date().toISOString().split('T')[0];
-    const allowedDates = Array.from({ length: 3 }, (_, i) => {
+    // Limit schedules to today and tomorrow (2 days)
+    const allowedDates = Array.from({ length: 2 }, (_, i) => {
       const d = new Date();
       d.setDate(d.getDate() + i);
       return d.toISOString().split('T')[0];
@@ -42,21 +41,22 @@ export async function POST(request: Request) {
       .map(s => {
         const movie = mockMovies.find(m => m.id === s.movieId);
         const theater = mockTheaters.find(t => t.id === s.theaterId);
-        const timesStr = s.times.map(t => `${t.time}(${t.hallName})`).join(', ');
-        return `[${s.date}] ${theater?.name || s.theaterId} | ${movie?.title || s.movieId} | ${s.screenType} | 시간표: ${timesStr}`;
+        const timesStr = s.times.map(t => `${t.time}(${t.hallName.replace('관', '')})`).join(',');
+        const dayStr = s.date.split('-')[2]; // e.g. "15"
+        const thShort = theater?.name.substring(0, 2) || '';
+        return `${dayStr}일 ${thShort} ${movie?.title}(${s.screenType}): ${timesStr}`;
       }).join('\n');
 
     const paymentInfo = `
-- 가격: 성인 10,000원, 청소년 8,000원, 우대 7,000원, 경로 6,000원
-- 결제수단: 신용카드, 카카오페이, 네이버페이, 토스페이, 휴대폰 소액결제
+- 요금: 성인 1만, 청소년 8천, 우대 7천, 경로 6천원
+- 결제: 신용카드, 카카오페이, 네이버페이, 토스페이, 휴대폰
 `;
 
     // ────────────────────────────────────────────────────────────
     // 2. Prepare Prompts
     // ────────────────────────────────────────────────────────────
     const systemPrompt = `
-당신은 CGV 영화 예매 서비스 "CineReserve"의 인공지능 도우미 "시네봇"입니다.
-아래 영화 리포트, 극장, 상영시간표, 요금 안내 정보를 바탕으로 고객의 질문에 친근하고 명확하게 존댓말로 답변해 주세요.
+당신은 CGV 예매 도우미 "시네봇"입니다. 존댓말로 짧고 친근하게 답변해 주세요.
 
 [상영 영화]
 ${moviesContext}
@@ -64,17 +64,16 @@ ${moviesContext}
 [극장 지점]
 ${theatersContext}
 
-[상영 시간표 (최근 3일)]
+[상영 스케줄 (오늘/내일)]
 ${schedulesContext}
 
-[요금 및 결제]
+[요금/결제]
 ${paymentInfo}
 
 [규칙]
-1. 이름은 "시네봇"입니다. 대화는 친근하게 이모지("🎬", "😊")를 섞어 존댓말로 답변해 주세요.
-2. 질문에 부합하는 영화 시간표를 안내할 때는 날짜, 상영관(예: 2D, IMAX관), 상영시간대를 대조하여 정확히 알려주세요.
-3. 예매를 하려면 앱 하단의 '예매' 메뉴로 갈 수 있음을 안내해 주세요.
-4. Groq API 무료 티어 한계(TPM 제한)에 따른 응답 지연을 피하기 위해, 핵심 내용 위주로 매우 간결하게 3문장 이내로만 응답하세요.
+1. 이름은 "시네봇"입니다. 대화는 친절하게 이모지("🎬", "😊")를 섞어 3문장 이내로만 아주 간결하게 응답하세요.
+2. 영화 시간표 문의 시 위의 오늘/내일 스케줄을 참고하여 정확히 알려주세요.
+3. 예매를 하려면 앱 하단의 '예매' 메뉴로 안내해 주세요.
 `;
 
     const groqPayload = {
@@ -87,7 +86,7 @@ ${paymentInfo}
         }))
       ],
       temperature: 0.7,
-      max_tokens: 512
+      max_tokens: 256
     };
 
     const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
