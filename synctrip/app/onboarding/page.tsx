@@ -184,9 +184,9 @@ export default function OnboardingPage() {
     storage.saveProfile(userProfile);
     storage.savePreferences(userPref);
     
-    // Create initial mock chat rooms for rich demo experience
-    storage.createChatRoom("user-2"); // 선지국밥
-    storage.createChatRoom("user-3"); // 케댈
+    // Seed code disabled to provide a clean slate for chats
+    // storage.createChatRoom("user-2");
+    // storage.createChatRoom("user-3");
 
     setTimeout(() => {
       setLoading(false);
@@ -216,16 +216,10 @@ export default function OnboardingPage() {
         >
           <ArrowLeft className="w-6 h-6 text-gray-600" />
         </button>
-        <span className="font-bold text-lg text-gray-800">동행 프로필 등록하기</span>
+        <span className="font-extrabold text-base text-gray-900">
+          {step === 1 ? "기본 정보" : step === 2 ? "라이프 스타일" : "여행 스타일"}
+        </span>
         <div className="w-8"></div>
-      </div>
-
-      {/* Progress Bar */}
-      <div className="h-1 bg-gray-100 w-full">
-        <div
-          className="h-full bg-primary transition-all duration-300"
-          style={{ width: `${(step / 3) * 100}%` }}
-        ></div>
       </div>
 
       {/* Scrollable Content Container */}
@@ -353,14 +347,15 @@ export default function OnboardingPage() {
         {/* Step 2: 라이프 스타일 */}
         {step === 2 && (
           <div className="space-y-6">
-            <div>
-              <h3 className="text-lg font-bold text-gray-900 mb-1">나의 라이프스타일</h3>
-              <p className="text-xs text-gray-500">입력하신 정보는 정밀한 동행 추천을 위해 사용됩니다.</p>
+            {/* Essential highlight banner (Image Reference 2) */}
+            <div className="bg-emerald-50/50 border border-emerald-100 rounded-2xl p-4 text-emerald-800 text-xs font-semibold flex items-start gap-2">
+              <span className="text-emerald-600 font-black">✓ (필수)</span>
+              <p className="leading-relaxed">입력한 정보는 더 잘 맞는 동행을 추천하기 위해 사용돼요.</p>
             </div>
 
             {/* 여행 상태 */}
-            <div className="space-y-2">
-              <label className="text-sm font-bold text-gray-700">현재 여행 상태 *</label>
+            <div className="space-y-3">
+              <label className="text-xs font-black text-gray-400 uppercase tracking-wider">🛫 여행 상태를 선택해주세요.*</label>
               <div className="space-y-2">
                 {[
                   "지금 여행중이에요",
@@ -370,14 +365,20 @@ export default function OnboardingPage() {
                   <button
                     key={status}
                     onClick={() => setTravelStatus(status)}
-                    className={`w-full p-3.5 rounded-xl border text-left text-sm font-medium transition flex items-center justify-between ${
+                    className={`w-full p-4 rounded-2xl border text-left text-xs font-black transition flex items-center justify-between ${
                       travelStatus === status
-                        ? "border-primary bg-primary/5 text-primary"
-                        : "border-gray-100 bg-gray-50 text-gray-600"
+                        ? "border-emerald-500 bg-emerald-50/20 text-emerald-700"
+                        : "border-gray-100 bg-gray-50 text-gray-500"
                     }`}
                   >
-                    {status}
-                    {travelStatus === status && <Check className="w-5 h-5" />}
+                    <span>{status}</span>
+                    <div className={`w-5 h-5 rounded-full border flex items-center justify-center transition ${
+                      travelStatus === status
+                        ? "border-emerald-500 bg-emerald-500 text-white"
+                        : "border-gray-300 bg-white"
+                    }`}>
+                      {travelStatus === status && <span className="text-[10px] font-black">✓</span>}
+                    </div>
                   </button>
                 ))}
               </div>
@@ -385,8 +386,8 @@ export default function OnboardingPage() {
 
             {/* 흡연 & 음주 */}
             <div className="space-y-4">
-              <div className="space-y-2">
-                <label className="text-sm font-bold text-gray-700">흡연 유무 *</label>
+              <div className="space-y-3.5">
+                <label className="text-xs font-black text-gray-400 uppercase tracking-wider">💨 흡연 유무를 선택해주세요.*</label>
                 <div className="flex flex-wrap gap-2">
                   {smokingOptions.map(option => (
                     <button
@@ -394,7 +395,7 @@ export default function OnboardingPage() {
                       onClick={() => setSmoking(option)}
                       className={`px-4 py-2.5 rounded-full text-xs font-semibold border transition ${
                         smoking === option
-                          ? "border-primary bg-primary/5 text-primary"
+                          ? "border-emerald-500 bg-emerald-50/15 text-emerald-600 font-extrabold"
                           : "border-gray-200 bg-white text-gray-600"
                       }`}
                     >
@@ -404,8 +405,8 @@ export default function OnboardingPage() {
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <label className="text-sm font-bold text-gray-700">음주 여부 *</label>
+              <div className="space-y-3.5">
+                <label className="text-xs font-black text-gray-400 uppercase tracking-wider">🍺 음주 여부를 알려주세요.*</label>
                 <div className="flex flex-wrap gap-2">
                   {drinkingOptions.map(option => (
                     <button
@@ -413,7 +414,7 @@ export default function OnboardingPage() {
                       onClick={() => setDrinking(option)}
                       className={`px-4 py-2.5 rounded-full text-xs font-semibold border transition ${
                         drinking === option
-                          ? "border-primary bg-primary/5 text-primary"
+                          ? "border-emerald-500 bg-emerald-50/15 text-emerald-600 font-extrabold"
                           : "border-gray-200 bg-white text-gray-600"
                       }`}
                     >
@@ -426,7 +427,7 @@ export default function OnboardingPage() {
 
             {/* 원하는 동행 연령대 */}
             <div className="space-y-2">
-              <label className="text-sm font-bold text-gray-700">원하는 동행 연령대 *</label>
+              <label className="text-xs font-black text-gray-400 uppercase tracking-wider">👥 원하는 동행 연령대 *</label>
               <div className="flex flex-wrap gap-2">
                 {companionAgeOptions.map(age => {
                   const selected = companionAges.includes(age);
@@ -436,7 +437,7 @@ export default function OnboardingPage() {
                       onClick={() => handleToggle(age, companionAges, setCompanionAges)}
                       className={`px-4 py-2.5 rounded-full text-xs font-semibold border transition ${
                         selected
-                          ? "border-primary bg-primary/5 text-primary"
+                          ? "border-emerald-500 bg-emerald-50/15 text-emerald-600 font-extrabold"
                           : "border-gray-200 bg-white text-gray-600"
                       }`}
                     >
@@ -449,7 +450,7 @@ export default function OnboardingPage() {
 
             {/* 찾고 있는 동행 역할 */}
             <div className="space-y-2">
-              <label className="text-sm font-bold text-gray-700">내가 찾고 있는 동행 역할 *</label>
+              <label className="text-xs font-black text-gray-400 uppercase tracking-wider">🤝 내가 찾고 있는 동행 역할 *</label>
               <div className="flex flex-wrap gap-2">
                 {companionTypeOptions.map(type => {
                   const selected = companionTypes.includes(type);
@@ -459,7 +460,7 @@ export default function OnboardingPage() {
                       onClick={() => handleToggle(type, companionTypes, setCompanionTypes)}
                       className={`px-4 py-2.5 rounded-full text-xs font-semibold border transition ${
                         selected
-                          ? "border-primary bg-primary/5 text-primary"
+                          ? "border-emerald-500 bg-emerald-50/15 text-emerald-600 font-extrabold"
                           : "border-gray-200 bg-white text-gray-600"
                       }`}
                     >
@@ -656,22 +657,40 @@ export default function OnboardingPage() {
       </div>
 
       {/* Fixed Bottom Button Panel */}
-      <div className="absolute bottom-0 inset-x-0 p-4 border-t border-gray-100 bg-white z-20 flex gap-3">
-        {step > 1 && (
+      <div className="absolute bottom-0 inset-x-0 p-4 border-t border-gray-100 bg-white z-20 flex flex-col gap-3.5">
+        {/* Progress and helper text (Image Reference 2) */}
+        <div className="flex flex-col gap-2 px-1">
+          <div className="flex items-center gap-1.5 text-[10px] font-bold text-gray-400">
+            <span className="text-emerald-500">💬</span>
+            <span>프로필 완성 시 <span className="text-emerald-600 font-extrabold">매칭률이 정확</span>해져요</span>
+          </div>
+          {/* Small progress bar */}
+          <div className="h-1 bg-gray-100 w-full rounded-full overflow-hidden">
+            <div
+              className="h-full bg-emerald-500 transition-all duration-300"
+              style={{ width: `${(step / 3) * 100}%` }}
+            ></div>
+          </div>
+        </div>
+
+        {/* Buttons Row */}
+        <div className="flex gap-3">
+          {step > 1 && (
+            <button
+              onClick={() => setStep(step - 1)}
+              className="flex-1 py-3.5 border border-gray-200 rounded-2xl text-xs font-black text-gray-700 bg-white hover:bg-gray-50 active:bg-gray-100 transition text-center"
+            >
+              이전
+            </button>
+          )}
           <button
-            onClick={() => setStep(step - 1)}
-            className="flex-1 py-4 border border-gray-200 rounded-2xl text-sm font-bold text-gray-700 bg-white hover:bg-gray-50 active:bg-gray-100 transition text-center"
+            onClick={step < 3 ? () => setStep(step + 1) : handleComplete}
+            className="flex-[2] py-3.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-2xl text-xs font-black active:scale-[0.99] transition flex items-center justify-center gap-2 shadow-sm shadow-emerald-500/10"
           >
-            이전
+            {step === 3 ? "성향 분석 및 완료" : "다음"}
+            <ArrowRight className="w-4.5 h-4.5" />
           </button>
-        )}
-        <button
-          onClick={step < 3 ? () => setStep(step + 1) : handleComplete}
-          className="flex-[2] py-4 bg-primary text-white rounded-2xl text-sm font-bold hover:bg-primary-dark active:scale-[0.99] transition flex items-center justify-center gap-2"
-        >
-          {step === 3 ? "성향 분석 및 완료" : "다음"}
-          <ArrowRight className="w-4 h-4" />
-        </button>
+        </div>
       </div>
     </div>
   );

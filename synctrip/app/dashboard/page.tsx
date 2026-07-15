@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { storage, UserProfile, TravelPreferences, MockUser } from "@/lib/storage";
 import BottomNav from "@/components/BottomNav";
+import Sidebar from "@/components/Sidebar";
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -16,6 +17,9 @@ export default function DashboardPage() {
   const [mockUsers, setMockUsers] = useState<MockUser[]>([]);
   const [selectedMock, setSelectedMock] = useState<MockUser | null>(null);
   const [countryFilter, setCountryFilter] = useState("전체");
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [showGuide, setShowGuide] = useState(false);
+  const [openQnaIdx, setOpenQnaIdx] = useState<number | null>(null);
 
   // Load data
   useEffect(() => {
@@ -93,7 +97,10 @@ export default function DashboardPage() {
             <Bell className="w-5.5 h-5.5 text-gray-700" />
             <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full"></span>
           </button>
-          <button className="p-2 hover:bg-gray-50 rounded-full transition">
+          <button 
+            onClick={() => setIsSidebarOpen(true)}
+            className="p-2 hover:bg-gray-50 rounded-full transition"
+          >
             <Menu className="w-5.5 h-5.5 text-gray-700" />
           </button>
         </div>
@@ -110,7 +117,10 @@ export default function DashboardPage() {
           <p className="text-xs text-gray-400 font-semibold mt-1">오늘도 어울리는 여행 버디를 찾아볼까요?</p>
         </div>
         {/* Info Banner */}
-        <div className="bg-blue-50 border border-blue-100/50 rounded-xl p-3.5 flex items-center justify-between shadow-sm cursor-pointer hover:bg-blue-100/50 transition">
+        <div 
+          onClick={() => setShowGuide(true)}
+          className="bg-blue-50 border border-blue-100/50 rounded-xl p-3.5 flex items-center justify-between shadow-sm cursor-pointer hover:bg-blue-100/50 transition"
+        >
           <div className="flex items-center gap-2.5">
             <span className="text-lg">🤖</span>
             <div>
@@ -357,12 +367,12 @@ export default function DashboardPage() {
 
       {/* Bottom Sheet / Details Modal */}
       {selectedMock && (
-        <div className="absolute inset-0 bg-black/60 z-40 flex flex-col justify-end">
+        <div className="absolute inset-0 bg-black/60 z-45 flex flex-col justify-end">
           {/* Backdrop Click */}
           <div className="flex-1" onClick={() => setSelectedMock(null)}></div>
           
           {/* Content Sheet */}
-          <div className="bg-white rounded-t-3xl max-h-[85%] overflow-y-auto p-5 relative shadow-2xl flex flex-col no-scrollbar">
+          <div className="bg-white rounded-t-3xl max-h-[85%] overflow-y-auto p-5 pb-8 relative shadow-2xl flex flex-col no-scrollbar">
             <button 
               onClick={() => setSelectedMock(null)}
               className="absolute top-4 right-4 p-1.5 hover:bg-gray-100 rounded-full transition"
@@ -486,7 +496,7 @@ export default function DashboardPage() {
                 onClick={() => handleSayHi(selectedMock.profile.id)}
                 className="w-full py-4 bg-primary text-white rounded-2xl font-bold text-sm hover:bg-primary-dark active:scale-[0.99] transition flex items-center justify-center gap-2 shadow-lg shadow-blue-500/10"
               >
-                <span>👋 인사하고 동행 대화 시작하기</span>
+                <span>👋 인사하기</span>
                 <ArrowRight className="w-4 h-4" />
               </button>
             </div>
@@ -496,6 +506,84 @@ export default function DashboardPage() {
 
       {/* Shared Navigation */}
       <BottomNav />
+
+      {/* Sidebar Panel */}
+      <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
+
+      {/* AI Matching Guide Bottom Sheet */}
+      {showGuide && (
+        <div className="absolute inset-0 bg-black/60 z-50 flex flex-col justify-end">
+          {/* Backdrop */}
+          <div className="flex-1" onClick={() => setShowGuide(false)}></div>
+          
+          {/* Content Sheet */}
+          <div className="bg-white rounded-t-3xl max-h-[85%] overflow-y-auto p-6 relative shadow-2xl flex flex-col no-scrollbar">
+            <button 
+              onClick={() => setShowGuide(false)}
+              className="absolute top-4 right-4 p-1.5 hover:bg-gray-100 rounded-full transition"
+            >
+              <X className="w-5.5 h-5.5 text-gray-400" />
+            </button>
+
+            {/* Header */}
+            <div className="mb-6 mt-2">
+              <span className="text-[9px] font-black text-primary bg-blue-50 px-2.5 py-1 rounded-md uppercase tracking-wider">AI Guide</span>
+              <h3 className="text-lg font-black text-gray-900 mt-2">AI 동행 매칭 시스템 안내</h3>
+              <p className="text-xs text-gray-400 font-semibold mt-1">SyncTrip의 AI가 최적의 버디를 찾아내는 원리를 안내합니다.</p>
+            </div>
+
+            {/* Q&A Accordion List */}
+            <div className="space-y-3.5">
+              {[
+                {
+                  q: "AI 매칭 점수(일치율)는 어떻게 계산되나요?",
+                  a: "SyncTrip AI 매칭 엔진은 회원님의 여행 계획성(초계획형~즉흥형), 라이프스타일(음주/흡연), 선호 숙소 타입, 하루 최대 걸음 수, 가고 싶은 여행지 테마 등의 선호도를 다각도로 비교 분석합니다. 라이프스타일 일치 여부와 여행 계획 스타일의 조화도에 따라 가중치가 부여되어 % 점수로 환산됩니다."
+                },
+                {
+                  q: "신뢰도 점수(Trust Score)는 무엇인가요?",
+                  a: "신뢰도 점수는 안전한 동행을 보장하기 위한 자체 등급 제도입니다. 기본 카카오 신원인증 시 80점의 기본 점수를 획득하며, 소속 학교나 직장 이메일 인증을 통과하면 신뢰 배지와 함께 가산점을 얻습니다. 매칭 신뢰 배지가 높은 회원일수록 피드에서 우선 추천됩니다."
+                },
+                {
+                  q: "계획 스타일이 다른 동행과 만나도 괜찮을까요?",
+                  a: "완벽히 동일한 성향 매칭 외에도, 서로의 성격을 보완해 줄 수 있는 E/I 성격 조화 매칭 등을 다양하게 제공합니다. 계획을 세세히 세우는 파트너와 즉흥적으로 즐기는 파트너가 상호 조율하여 더욱 균형 잡힌 여행을 설계하도록 돕는 유연한 엔진을 탑재하고 있습니다."
+                },
+                {
+                  q: "AI 성향 분석 요약(AI Summary)은 어떻게 생성되나요?",
+                  a: "프로필 설정 및 온보딩 설문 제출 시, Google Gemini 2.5 Flash 모델이 회원님의 모든 라이프스타일과 성향 키워드를 복합적으로 진단하여 고유한 페르소나 타이틀(예: '알프스의 푸른 숨결을 찾는 여유주의자')과 정밀 성향 진단 분석서를 즉석에서 생성합니다."
+                }
+              ].map((item, idx) => (
+                <div 
+                  key={idx} 
+                  className="bg-gray-50 border border-gray-100 rounded-2xl p-4 transition-all hover:bg-gray-100/55 cursor-pointer"
+                  onClick={() => setOpenQnaIdx(openQnaIdx === idx ? null : idx)}
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-xs font-black text-gray-800 leading-snug flex-1">
+                      <span className="text-primary mr-1.5">Q.</span>{item.q}
+                    </span>
+                    <ChevronRight className={`w-4 h-4 text-gray-400 flex-shrink-0 transition-transform duration-300 ${
+                      openQnaIdx === idx ? "rotate-90 text-primary" : ""
+                    }`} />
+                  </div>
+                  {openQnaIdx === idx && (
+                    <div className="mt-3 pt-3 border-t border-gray-200/50 text-[11px] leading-relaxed text-gray-500 font-semibold animate-fadeIn">
+                      {item.a}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            {/* Footer action */}
+            <button
+              onClick={() => setShowGuide(false)}
+              className="mt-8 w-full py-4 bg-primary hover:bg-primary-dark text-white rounded-2xl font-bold text-xs shadow-lg shadow-blue-500/10 active:scale-[0.99] transition"
+            >
+              안내 확인 완료
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

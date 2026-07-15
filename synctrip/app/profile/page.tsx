@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { storage, UserProfile, TravelPreferences } from "@/lib/storage";
 import BottomNav from "@/components/BottomNav";
+import Sidebar from "@/components/Sidebar";
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -26,6 +27,7 @@ export default function ProfilePage() {
   const [showMenuSheet, setShowMenuSheet] = useState(false);
   const [showIdentityModal, setShowIdentityModal] = useState(false);
   const [showOrgModal, setShowOrgModal] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   
   // Org Verification form state
   const [emailInput, setEmailInput] = useState("");
@@ -171,7 +173,10 @@ export default function ProfilePage() {
                 <Bell className="w-5.5 h-5.5 text-gray-700" />
                 <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full"></span>
               </button>
-              <button className="p-2 hover:bg-gray-50 rounded-full transition">
+              <button 
+                onClick={() => setIsSidebarOpen(true)}
+                className="p-2 hover:bg-gray-50 rounded-full transition"
+              >
                 <Menu className="w-5.5 h-5.5 text-gray-700" />
               </button>
             </div>
@@ -711,6 +716,9 @@ export default function ProfilePage() {
 
       {/* Shared Navigation */}
       <BottomNav />
+
+      {/* Sidebar Panel */}
+      <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
     </div>
   );
 }

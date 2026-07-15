@@ -5,11 +5,13 @@ import { useRouter } from "next/navigation";
 import { MessageSquare, ArrowRight, CheckCircle2, ChevronRight, Bell, Menu } from "lucide-react";
 import { storage, UserProfile } from "@/lib/storage";
 import BottomNav from "@/components/BottomNav";
+import Sidebar from "@/components/Sidebar";
 
 export default function ChatListPage() {
   const router = useRouter();
   const [rooms, setRooms] = useState<any[]>([]);
   const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   useEffect(() => {
     const prof = storage.getProfile();
@@ -18,6 +20,14 @@ export default function ChatListPage() {
       return;
     }
     setProfile(prof);
+
+    // Wipe out all chat rooms and messages ONCE for this session as requested to give a clean slate
+    if (typeof window !== "undefined" && !sessionStorage.getItem("synctrip_chat_wiped")) {
+      localStorage.removeItem("synctrip_chat_rooms");
+      localStorage.removeItem("synctrip_chat_messages");
+      sessionStorage.setItem("synctrip_chat_wiped", "true");
+    }
+
     setRooms(storage.getChatRooms());
   }, [router]);
 
@@ -58,7 +68,10 @@ export default function ChatListPage() {
             <Bell className="w-5.5 h-5.5 text-gray-700" />
             <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full"></span>
           </button>
-          <button className="p-2 hover:bg-gray-50 rounded-full transition">
+          <button 
+            onClick={() => setIsSidebarOpen(true)}
+            className="p-2 hover:bg-gray-50 rounded-full transition"
+          >
             <Menu className="w-5.5 h-5.5 text-gray-700" />
           </button>
         </div>
@@ -77,7 +90,7 @@ export default function ChatListPage() {
             <MessageSquare className="w-10 h-10 text-gray-300" />
             <h3 className="font-bold text-gray-800 text-sm">개설된 대화방이 없습니다</h3>
             <p className="text-xs text-gray-400 max-w-xs">
-              매칭 피드에서 마음에 드는 여행 버디의 프로필을 확인하고 '👋 인사하고 대화 시작하기'를 눌러 보세요.
+              매칭 피드에서 마음에 드는 여행 버디의 프로필을 확인하고 '👋 인사하기'를 눌러 보세요.
             </p>
             <button
               onClick={() => router.push("/dashboard")}
@@ -130,6 +143,9 @@ export default function ChatListPage() {
 
       {/* Shared Navigation */}
       <BottomNav />
+
+      {/* Sidebar Panel */}
+      <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
     </div>
   );
 }

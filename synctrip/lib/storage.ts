@@ -1048,7 +1048,10 @@ export const storage = {
 
     // Check if exists
     const exists = matches.some(m => m.receiver_id === otherUserId && m.requester_id === profile.id);
-    if (exists) return true;
+    if (exists) {
+      this.createChatRoom(otherUserId);
+      return true;
+    }
 
     // Simulate auto-accepting match after 1 second for demo purposes!
     const newMatch = {
@@ -1146,6 +1149,26 @@ export const storage = {
     rooms.push(newRoom);
     localStorage.setItem(STORAGE_KEYS.CHAT_ROOMS, JSON.stringify(rooms));
     return newRoomId;
+  },
+
+  deleteChatRoom(roomId: string): void {
+    if (typeof window === "undefined") return;
+    
+    // 1. Remove from rooms list
+    const roomsData = localStorage.getItem(STORAGE_KEYS.CHAT_ROOMS);
+    if (roomsData) {
+      const rooms = JSON.parse(roomsData);
+      const filtered = rooms.filter((r: any) => r.id !== roomId);
+      localStorage.setItem(STORAGE_KEYS.CHAT_ROOMS, JSON.stringify(filtered));
+    }
+    
+    // 2. Remove messages associated with this room to save space
+    const msgsData = localStorage.getItem(STORAGE_KEYS.CHAT_MESSAGES);
+    if (msgsData) {
+      const msgs = JSON.parse(msgsData);
+      const filteredMsgs = msgs.filter((m: any) => m.room_id !== roomId);
+      localStorage.setItem(STORAGE_KEYS.CHAT_MESSAGES, JSON.stringify(filteredMsgs));
+    }
   },
 
   getChatMessages(roomId: string): any[] {

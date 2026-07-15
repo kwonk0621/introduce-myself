@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { useRouter, useParams } from "next/navigation";
-import { ArrowLeft, Send, CheckCircle2, School, UserCheck, Heart } from "lucide-react";
+import { ArrowLeft, Send, CheckCircle2, School, UserCheck, Heart, LogOut } from "lucide-react";
 import { storage, UserProfile } from "@/lib/storage";
 
 export default function ChatRoomPage() {
@@ -73,6 +73,13 @@ export default function ChatRoomPage() {
     setInputText("");
   };
 
+  const handleLeaveRoom = () => {
+    if (window.confirm("정말 이 채팅방을 나가시겠습니까? 대화 기록이 모두 삭제됩니다.")) {
+      storage.deleteChatRoom(roomId);
+      router.push("/chat");
+    }
+  };
+
   const formatTime = (isoString: string) => {
     try {
       const date = new Date(isoString);
@@ -85,7 +92,7 @@ export default function ChatRoomPage() {
   };
 
   return (
-    <div className="flex-1 flex flex-col bg-slate-50 relative min-h-screen md:min-h-[850px]">
+    <div className="flex-1 flex flex-col bg-slate-50 relative overflow-hidden">
       
       {/* Header */}
       <div className="bg-white border-b border-gray-100 sticky top-0 z-10">
@@ -114,6 +121,15 @@ export default function ChatRoomPage() {
               {partner.age_group} · MBTI: {partner.mbti} · 신뢰도 {partner.trust_score}점
             </p>
           </div>
+
+          <button
+            onClick={handleLeaveRoom}
+            className="flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-black text-rose-600 bg-rose-50 border border-rose-100 hover:bg-rose-100 transition active:scale-95"
+            title="채팅방 나가기"
+          >
+            <LogOut className="w-3.5 h-3.5" />
+            <span>나가기</span>
+          </button>
         </div>
 
         {/* Quick Partner Badges Row */}

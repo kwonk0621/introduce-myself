@@ -1,17 +1,11 @@
 import { NextResponse } from "next/server";
-import { GoogleGenerativeAI } from "@google/generative-ai";
 
 export async function POST(request: Request) {
   try {
     const body = await request.json();
     const { roomId, messages, partner, userProfile } = body;
 
-    const apiKey = process.env.GEMINI_API_KEY;
-
-    // Construct history log for prompt
-    const historyText = messages
-      .map((m: any) => `${m.sender_id === partner.id ? partner.name : userProfile.name}: ${m.message}`)
-      .join("\n");
+    const apiKey = process.env.GROQ_API_KEY;
 
     // Standard high-quality traveler context templates
     const partnerVibe = `
@@ -43,28 +37,64 @@ ${partnerVibe}
 대화 상대방(${userProfile.name})의 정보:
 ${userVibe}
 
-최근 대화 기록:
-${historyText}
-
 답변 작성 규칙:
 1. 반드시 당신의 프로필 정보(나이, 성별, MBTI, 여행 스타일, 걸음 수, 선호 숙소 등)에 부합하는 답변을 하세요.
 2. 대화 기록을 면밀히 분석하고 흐름을 이어가며, 상대방의 질문에 적절히 답변하거나 새로운 여행 제안을 던지세요.
 3. 딱딱한 말투(예: 다나까) 대신 친근하고 자연스러운 구어체(예: "~해요", "~했네요!", "ㅎㅎ", "ㅠㅠ", "!" 등 메신저 감성)를 적극 활용하세요.
 4. 답변은 너무 길지 않게 2~3문장 이내로 작성해 주세요.
 5. 오직 답변 텍스트만 출력하세요. 다른 서술이나 메타 설명(예: "답변:")은 절대 포함하지 마십시오.
+6. 대화 내용에 관계없이 답변은 반드시 한국어로만 작성하세요. 상대방이 다른 언어로 말을 걸더라도 오직 자연스럽고 친근한 한국어로만 답변해야 합니다.
+7. 한자, 일본어(가나), 영어 알파벳 등 어떠한 외국어 문자 표기도 절대 사용하지 마세요. 외국어 단어나 고유 명사(도시 이름, 숙소 등)가 필요한 경우 반드시 한글 발음으로만 표기해야 합니다. (예: 오사카, 숙소, 에어비앤비)
 `;
 
     if (apiKey) {
       try {
-        const genAI = new GoogleGenerativeAI(apiKey);
-        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+        // Build the messages payload for Groq in standard OpenAI format
+        const groqMessages = [
+          { role: "system", content: systemInstruction },
+          ...messages.map((m: any) => ({
+            role: m.sender_id === partner.id ? "assistant" : "user",
+            content: m.message
+          }))
+        ];
+        console.log("GROQ PROMPT:", JSON.stringify(groqMessages, null, 2));
 
-        const result = await model.generateContent(systemInstruction);
-        const replyText = result.response.text().trim();
-        
-        return NextResponse.json({ reply: replyText });
+        // Call Groq API endpoint
+        const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${apiKey}`
+          },
+          body: JSON.stringify({
+            model: "llama-3.1-8b-instant",
+            messages: groqMessages,
+            temperature: 0.3,
+            max_tokens: 150
+          })
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          let replyText = data.choices[0]?.message?.content?.trim() || "";
+          
+          // Cleanup any wrapping quotes or prefixes
+          if (replyText.startsWith('"') && replyText.endsWith('"')) {
+            replyText = replyText.slice(1, -1);
+          }
+          if (replyText.startsWith('답변:')) {
+            replyText = replyText.replace('답변:', '').trim();
+          }
+
+          if (replyText) {
+            return NextResponse.json({ reply: replyText });
+          }
+        } else {
+          const errorDetails = await response.text();
+          console.error("Groq API response error:", errorDetails);
+        }
       } catch (aiError) {
-        console.error("Gemini chat reply failed, fallback to mock", aiError);
+        console.error("Groq chat reply failed, fallback to mock", aiError);
       }
     }
 
