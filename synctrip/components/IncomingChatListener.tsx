@@ -17,6 +17,11 @@ export default function IncomingChatListener() {
   useEffect(() => {
     if (typeof window === "undefined") return;
 
+    // Sync with Supabase on mount
+    if ((storage as any).syncWithSupabase) {
+      (storage as any).syncWithSupabase();
+    }
+
     // Check if the user is onboarded (profile exists)
     const profile = storage.getProfile();
     if (!profile) return;

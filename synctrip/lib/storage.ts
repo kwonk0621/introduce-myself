@@ -1,5 +1,6 @@
 // SyncTrip Local Storage & Mock Database Engine
 // Provides persistent client-side database simulation for a zero-setup demo experience.
+import { supabase } from "./supabaseClient";
 
 export interface UserProfile {
   id: string;
@@ -1137,6 +1138,28 @@ export const storage = {
   saveProfile(profile: UserProfile): void {
     if (typeof window === "undefined") return;
     localStorage.setItem(STORAGE_KEYS.USER_PROFILE, JSON.stringify(profile));
+
+    if (supabase) {
+      supabase
+        .from("profiles")
+        .upsert({
+          id: profile.id,
+          name: profile.name,
+          avatar_url: profile.avatar_url,
+          gender: profile.gender,
+          age_group: profile.age_group,
+          mbti: profile.mbti,
+          self_intro: profile.self_intro,
+          languages: profile.languages,
+          trust_score: profile.trust_score,
+          is_identity_verified: profile.is_identity_verified,
+          is_org_verified: profile.is_org_verified,
+          org_name: profile.org_name
+        })
+        .then(({ error }) => {
+          if (error) console.error("Error saving profile to Supabase:", error);
+        });
+    }
   },
 
   getPreferences(): TravelPreferences | null {
@@ -1148,6 +1171,34 @@ export const storage = {
   savePreferences(pref: TravelPreferences): void {
     if (typeof window === "undefined") return;
     localStorage.setItem(STORAGE_KEYS.USER_PREFERENCES, JSON.stringify(pref));
+
+    if (supabase) {
+      const profile = this.getProfile();
+      if (profile) {
+        supabase
+          .from("travel_preferences")
+          .upsert({
+            profile_id: profile.id,
+            travel_status: pref.travel_status,
+            smoking: pref.smoking,
+            drinking: pref.drinking,
+            companion_ages: pref.companion_ages,
+            companion_types: pref.companion_types,
+            planning_style: pref.planning_style,
+            visited_countries: pref.visited_countries,
+            important_factors: pref.important_factors,
+            max_steps: pref.max_steps,
+            accommodation_types: pref.accommodation_types,
+            travel_destinations: pref.travel_destinations,
+            travel_types: pref.travel_types,
+            ai_summary: pref.ai_summary,
+            ai_details: pref.ai_details
+          })
+          .then(({ error }) => {
+            if (error) console.error("Error saving preferences to Supabase:", error);
+          });
+      }
+    }
   },
 
   getMockUsersWithScores(): MockUser[] {
@@ -1290,7 +1341,13 @@ export const storage = {
     );
     if (existing) return existing.id;
 
-    const newRoomId = `room-${Date.now()}`;
+    const newRoomId = (typeof crypto !== 'undefined' && crypto.randomUUID) 
+      ? crypto.randomUUID() 
+      : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+          var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+          return v.toString(16);
+        });
+
     const newRoom = {
       id: newRoomId,
       participants: [profile.id, partnerId],
@@ -1299,6 +1356,67 @@ export const storage = {
 
     rooms.push(newRoom);
     localStorage.setItem(STORAGE_KEYS.CHAT_ROOMS, JSON.stringify(rooms));
+
+    // Supabase write
+    if (supabase) {
+      const partner = INITIAL_MOCK_USERS.find(u => u.profile.id === partnerId);
+      
+      const insertProfilesAndRoom = async () => {
+        try {
+          // Upsert profiles to prevent foreign key violation
+          await supabase.from("profiles").upsert({
+            id: profile.id,
+            name: profile.name,
+            avatar_url: profile.avatar_url,
+            gender: profile.gender,
+            age_group: profile.age_group,
+            mbti: profile.mbti,
+            self_intro: profile.self_intro,
+            languages: profile.languages,
+            trust_score: profile.trust_score,
+            is_identity_verified: profile.is_identity_verified,
+            is_org_verified: profile.is_org_verified,
+            org_name: profile.org_name
+          });
+
+          if (partner) {
+            await supabase.from("profiles").upsert({
+              id: partner.profile.id,
+              name: partner.profile.name,
+              avatar_url: partner.profile.avatar_url,
+              gender: partner.profile.gender,
+              age_group: partner.profile.age_group,
+              mbti: partner.profile.mbti,
+              self_intro: partner.profile.self_intro,
+              languages: partner.profile.languages,
+              trust_score: partner.profile.trust_score,
+              is_identity_verified: partner.profile.is_identity_verified,
+              is_org_verified: partner.profile.is_org_verified,
+              org_name: partner.profile.org_name
+            });
+          }
+
+          // Insert room
+          const { error: rError } = await supabase.from("chat_rooms").insert({
+            id: newRoomId,
+            created_at: newRoom.created_at
+          });
+
+          if (!rError) {
+            // Insert participants
+            await supabase.from("chat_participants").insert([
+              { room_id: newRoomId, profile_id: profile.id },
+              { room_id: newRoomId, profile_id: partnerId }
+            ]);
+          }
+        } catch (err) {
+          console.error("Supabase insertProfilesAndRoom failed:", err);
+        }
+      };
+
+      insertProfilesAndRoom();
+    }
+
     return newRoomId;
   },
 
@@ -1319,6 +1437,13 @@ export const storage = {
       const msgs = JSON.parse(msgsData);
       const filteredMsgs = msgs.filter((m: any) => m.room_id !== roomId);
       localStorage.setItem(STORAGE_KEYS.CHAT_MESSAGES, JSON.stringify(filteredMsgs));
+    }
+
+    // Supabase write
+    if (supabase) {
+      supabase.from("chat_rooms").delete().eq("id", roomId).then(({ error }) => {
+        if (error) console.error("Error deleting room from Supabase:", error);
+      });
     }
   },
 
@@ -1344,8 +1469,15 @@ export const storage = {
     const data = localStorage.getItem(STORAGE_KEYS.CHAT_MESSAGES);
     const allMsgs = data ? JSON.parse(data) : [];
 
+    const newMsgId = (typeof crypto !== 'undefined' && crypto.randomUUID) 
+      ? crypto.randomUUID() 
+      : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+          var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+          return v.toString(16);
+        });
+
     const newMsg = {
-      id: `msg-${Date.now()}`,
+      id: newMsgId,
       room_id: roomId,
       sender_id: profile.id,
       message: messageText,
@@ -1354,6 +1486,22 @@ export const storage = {
 
     allMsgs.push(newMsg);
     localStorage.setItem(STORAGE_KEYS.CHAT_MESSAGES, JSON.stringify(allMsgs));
+
+    // Supabase write
+    if (supabase) {
+      supabase
+        .from("chat_messages")
+        .insert({
+          id: newMsgId,
+          room_id: roomId,
+          sender_id: profile.id,
+          message: messageText,
+          created_at: newMsg.created_at
+        })
+        .then(({ error }) => {
+          if (error) console.error("Error saving chat message to Supabase:", error);
+        });
+    }
 
     // Trigger mock auto-reply for rich messaging demo!
     setTimeout(() => {
@@ -1402,8 +1550,15 @@ export const storage = {
         const msgsData = localStorage.getItem(STORAGE_KEYS.CHAT_MESSAGES);
         const allMsgs = msgsData ? JSON.parse(msgsData) : [];
 
+        const partnerMsgId = (typeof crypto !== 'undefined' && crypto.randomUUID) 
+          ? crypto.randomUUID() 
+          : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+              var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+              return v.toString(16);
+            });
+
         const partnerMsg = {
-          id: `msg-reply-${Date.now()}`,
+          id: partnerMsgId,
           room_id: roomId,
           sender_id: partnerId,
           message: replyText,
@@ -1412,6 +1567,22 @@ export const storage = {
 
         allMsgs.push(partnerMsg);
         localStorage.setItem(STORAGE_KEYS.CHAT_MESSAGES, JSON.stringify(allMsgs));
+
+        // Supabase write
+        if (supabase) {
+          supabase
+            .from("chat_messages")
+            .insert({
+              id: partnerMsgId,
+              room_id: roomId,
+              sender_id: partnerId,
+              message: replyText,
+              created_at: partnerMsg.created_at
+            })
+            .then(({ error }) => {
+              if (error) console.error("Error saving AI reply to Supabase:", error);
+            });
+        }
 
         // Custom Event to notify react pages to refresh messages instantly
         window.dispatchEvent(new CustomEvent("synctrip_new_message", { detail: { roomId } }));
@@ -1450,8 +1621,15 @@ export const storage = {
     const data = localStorage.getItem(STORAGE_KEYS.CHAT_MESSAGES);
     const allMsgs = data ? JSON.parse(data) : [];
 
+    const partnerMsgId = (typeof crypto !== 'undefined' && crypto.randomUUID) 
+      ? crypto.randomUUID() 
+      : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+          var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+          return v.toString(16);
+        });
+
     const partnerMsg = {
-      id: `msg-incoming-${Date.now()}`,
+      id: partnerMsgId,
       room_id: roomId,
       sender_id: randomUser.profile.id,
       message: greetingText,
@@ -1460,6 +1638,22 @@ export const storage = {
 
     allMsgs.push(partnerMsg);
     localStorage.setItem(STORAGE_KEYS.CHAT_MESSAGES, JSON.stringify(allMsgs));
+
+    // Supabase write
+    if (supabase) {
+      supabase
+        .from("chat_messages")
+        .insert({
+          id: partnerMsgId,
+          room_id: roomId,
+          sender_id: randomUser.profile.id,
+          message: greetingText,
+          created_at: partnerMsg.created_at
+        })
+        .then(({ error }) => {
+          if (error) console.error("Error saving incoming greeting message to Supabase:", error);
+        });
+    }
 
     // Dispatch a global custom event to notify components that a new message arrived
     window.dispatchEvent(new CustomEvent("synctrip_new_message", {
@@ -1477,6 +1671,123 @@ export const storage = {
       partner: randomUser.profile,
       message: greetingText
     };
+  },
+
+  async syncWithSupabase() {
+    if (typeof window === "undefined" || !supabase) return;
+    const profile = this.getProfile();
+    if (!profile) return;
+
+    try {
+      // 1. Sync User Profile
+      const { data: dbProfile, error: pError } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", profile.id)
+        .single();
+        
+      if (dbProfile) {
+        localStorage.setItem(STORAGE_KEYS.USER_PROFILE, JSON.stringify(dbProfile));
+      }
+      
+      // 2. Sync Preferences
+      const { data: dbPref, error: prError } = await supabase
+        .from("travel_preferences")
+        .select("*")
+        .eq("profile_id", profile.id)
+        .single();
+        
+      if (dbPref) {
+        const mappedPref = {
+          travel_status: dbPref.travel_status,
+          smoking: dbPref.smoking,
+          drinking: dbPref.drinking,
+          companion_ages: dbPref.companion_ages,
+          companion_types: dbPref.companion_types,
+          planning_style: dbPref.planning_style,
+          visited_countries: dbPref.visited_countries,
+          important_factors: dbPref.important_factors,
+          max_steps: dbPref.max_steps,
+          accommodation_types: dbPref.accommodation_types,
+          travel_destinations: dbPref.travel_destinations,
+          travel_types: dbPref.travel_types,
+          ai_summary: dbPref.ai_summary,
+          ai_details: dbPref.ai_details
+        };
+        localStorage.setItem(STORAGE_KEYS.USER_PREFERENCES, JSON.stringify(mappedPref));
+      }
+
+      // 3. Sync Chat history (rooms & messages)
+      await this.syncChatWithSupabase();
+    } catch (err) {
+      console.error("Supabase sync failed:", err);
+    }
+  },
+
+  async syncChatWithSupabase() {
+    if (typeof window === "undefined" || !supabase) return;
+    const profile = this.getProfile();
+    if (!profile) return;
+
+    try {
+      const { data: participants, error: partError } = await supabase
+        .from("chat_participants")
+        .select("room_id")
+        .eq("profile_id", profile.id);
+
+      if (partError || !participants) return;
+      const roomIds = participants.map(p => p.room_id);
+      if (roomIds.length === 0) return;
+
+      const { data: allParts, error: allPartError } = await supabase
+        .from("chat_participants")
+        .select("room_id, profile_id")
+        .in("room_id", roomIds);
+
+      if (allPartError || !allParts) return;
+
+      const participantsByRoom: { [key: string]: string[] } = {};
+      allParts.forEach(p => {
+        if (!participantsByRoom[p.room_id]) {
+          participantsByRoom[p.room_id] = [];
+        }
+        participantsByRoom[p.room_id].push(p.profile_id);
+      });
+
+      const { data: dbRooms, error: roomError } = await supabase
+        .from("chat_rooms")
+        .select("*")
+        .in("id", roomIds);
+
+      if (roomError || !dbRooms) return;
+
+      const localRooms = dbRooms.map(r => ({
+        id: r.id,
+        participants: participantsByRoom[r.id] || [],
+        created_at: r.created_at
+      }));
+      localStorage.setItem(STORAGE_KEYS.CHAT_ROOMS, JSON.stringify(localRooms));
+
+      const { data: dbMessages, error: msgError } = await supabase
+        .from("chat_messages")
+        .select("*")
+        .in("room_id", roomIds);
+
+      if (msgError || !dbMessages) return;
+
+      const localMsgs = dbMessages.map(m => ({
+        id: m.id,
+        room_id: m.room_id,
+        sender_id: m.sender_id,
+        message: m.message,
+        created_at: m.created_at
+      }));
+      localStorage.setItem(STORAGE_KEYS.CHAT_MESSAGES, JSON.stringify(localMsgs));
+      
+      window.dispatchEvent(new CustomEvent("synctrip_new_message", { detail: { roomId: "all" } }));
+    } catch (err) {
+      console.error("Failed to sync chats with Supabase:", err);
+    }
   },
 
   resetAllData(): void {
