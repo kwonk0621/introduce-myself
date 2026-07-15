@@ -42,10 +42,10 @@ export interface Theater {
 }
 
 export interface ScreenTime {
-  id: string | number;
   time: string;
   endTime: string;
   totalSeats: number;
+  reservedSeats: string[];
   hallName: string;
 }
 
@@ -83,78 +83,59 @@ export interface ChatMessage {
 }
 
 // ────────────────────────────────────────────────────────────
-// DATABASE ADAPTER INTERFACE
+// DATABASE ADAPTER IMPLEMENTATION (Prisma API fetch + Supabase Realtime)
 // ────────────────────────────────────────────────────────────
 class DatabaseAdapter {
   
   // 1. Movie operations
   async getMovies(): Promise<any[]> {
-    if (supabase) {
-      const { data, error } = await supabase.from('movies').select('*');
-      if (!error && data && data.length > 0) return data;
+    try {
+      const res = await fetch('/api/movies');
+      if (res.ok) {
+        const data = await res.json();
+        if (data && !data.error) return data;
+      }
+    } catch (err) {
+      console.warn("API movies fetch failed. Falling back to mock data.", err);
     }
     return mockMovies;
   }
 
   async getMovieById(id: string): Promise<any | null> {
-    if (supabase) {
-      const { data, error } = await supabase.from('movies').select('*').eq('id', id).single();
-      if (!error && data) return data;
+    try {
+      const res = await fetch(`/api/movies?id=${id}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data && !data.error) return data;
+      }
+    } catch (err) {
+      console.warn("API movie fetch failed. Falling back to mock data.", err);
     }
     return mockMovies.find(m => m.id === id) || null;
   }
 
   // 2. Theater operations
   async getTheaters(): Promise<any[]> {
-    if (supabase) {
-      const { data, error } = await supabase.from('theaters').select('*');
-      if (!error && data && data.length > 0) return data;
-    }
     return mockTheaters;
   }
 
   // 3. Schedule & Screen Time slots
   async getSchedules(movieId: string, theaterId: string, date: string): Promise<any[]> {
-    if (supabase) {
-      // Query schedules with inner tables from Supabase
-      const { data, error } = await supabase
-        .from('schedules')
-        .select(`
-          id,
-          movie_id,
-          theater_id,
-          play_date,
-          halls(name, screen_type),
-          screen_times(id, start_time, end_time, available_seats)
-        `)
-        .eq('movie_id', movieId)
-        .eq('theater_id', theaterId)
-        .eq('play_date', date);
-
-      if (!error && data && data.length > 0) {
-        return data.map((s: any) => ({
-          id: s.id,
-          movieId: s.movie_id,
-          theaterId: s.theater_id,
-          date: s.play_date,
-          screenType: s.halls?.screen_type || '2D',
-          times: (s.screen_times || []).map((t: any) => ({
-            id: t.id,
-            time: t.start_time.substring(0, 5),
-            endTime: t.end_time.substring(0, 5),
-            totalSeats: t.available_seats,
-            hallName: s.halls?.name || '일반관'
-          }))
-        }));
+    try {
+      const res = await fetch(`/api/schedules?movieId=${movieId}&theaterId=${theaterId}&date=${date}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data && !data.error && !data.mock) return data;
       }
+    } catch (err) {
+      console.warn("API schedules fetch failed. Falling back to mock data.", err);
     }
-
-    // Local Mock Generation logic
     return mockSchedules.filter(s => s.movieId === movieId && s.theaterId === theaterId && s.date === date);
   }
 
   // 4. Seat Reservation Operations
   async getReservedSeats(screenTimeId: string | number): Promise<string[]> {
+    // If Supabase is active in client, fetch from Supabase for real-time
     if (supabase) {
       const { data, error } = await supabase
         .from('booked_seats')
@@ -175,13 +156,8 @@ class DatabaseAdapter {
           .filter(b => String(b.screenTimeId) === String(screenTimeId))
           .flatMap(b => b.seats);
         
-        // Combine with default mock reserved seats to make it look active
-        const dayIdx = new Date().getDate();
         const baseReserved = ["B3", "B4", "H1", "H2"];
-        if (typeof screenTimeId === 'number' || String(screenTimeId).startsWith('sched-')) {
-          return Array.from(new Set([...baseReserved, ...matched]));
-        }
-        return matched;
+        return Array.from(new Set([...baseReserved, ...matched]));
       }
     }
     return ["B3", "B4", "H1", "H2"];
@@ -216,21 +192,41 @@ class DatabaseAdapter {
       createdAt: new Date().toISOString()
     };
 
-    if (supabase) {
-      // Execute the Database RPC function to ensure transaction atomicity
-      const { error } = await supabase.rpc('create_booking_transaction', {
-        p_booking_id: bookingId,
-        p_user_id: userId,
-        p_screen_time_id: typeof screenTimeId === 'string' ? parseInt(screenTimeId) : screenTimeId,
-        p_total_price: totalPrice,
-        p_payment_method: paymentMethod,
-        p_seats: seats
+    try {
+      const res = await fetch('/api/bookings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId,
+          screenTimeId,
+          movieTitle: movie.title,
+          posterUrl: movie.posterUrl,
+          theaterName: theater.name,
+          hallName: timeSlot.hallName,
+          playDate: schedule.date,
+          playTime: timeSlot.time,
+          seats,
+          totalPrice,
+          paymentMethod
+        })
       });
 
-      if (error) {
-        throw new Error(error.message || '예약 처리 중 동시성 오류가 발생했습니다.');
+      if (res.ok) {
+        const data = await res.json();
+        if (data && !data.mock) {
+          newBooking.id = data.id;
+          newBooking.createdAt = data.createdAt;
+          return newBooking;
+        }
+      } else {
+        const errData = await res.json();
+        throw new Error(errData.error || '예약 처리 중 오류가 발생했습니다.');
       }
-      return newBooking;
+    } catch (err: any) {
+      if (err.message && err.message.includes('이미 다른 고객님께서')) {
+        throw err;
+      }
+      console.warn("API booking failed. Falling back to local storage.", err);
     }
 
     // Local Storage processing
@@ -238,7 +234,6 @@ class DatabaseAdapter {
       const bookingsJson = localStorage.getItem('cine_reserve_bookings') || '[]';
       const bookings: Booking[] = JSON.parse(bookingsJson);
 
-      // Check double booking
       const alreadyReserved = bookings
         .filter(b => String(b.screenTimeId) === String(screenTimeId))
         .flatMap(b => b.seats);
@@ -251,7 +246,6 @@ class DatabaseAdapter {
       bookings.push(newBooking);
       localStorage.setItem('cine_reserve_bookings', JSON.stringify(bookings));
 
-      // Dispatch custom event to notify other tabs/components
       window.dispatchEvent(new CustomEvent('cine_reserve_booking_created', {
         detail: { screenTimeId, seats }
       }));
@@ -262,55 +256,16 @@ class DatabaseAdapter {
 
   // 6. Read Bookings (MyPage)
   async getBookings(userId: string): Promise<Booking[]> {
-    if (supabase) {
-      const { data, error } = await supabase
-        .from('bookings')
-        .select(`
-          id,
-          total_price,
-          payment_method,
-          created_at,
-          screen_times(
-            start_time,
-            schedules(
-              play_date,
-              movies(title, poster_url),
-              theaters(name),
-              halls(name)
-            )
-          ),
-          booked_seats(seat_id)
-        `)
-        .eq('user_id', userId);
-
-      if (!error && data) {
-        return data.map((b: any) => {
-          const screenTime = b.screen_times;
-          const schedule = screenTime?.schedules;
-          const movie = schedule?.movies;
-          const theater = schedule?.theaters;
-          const hall = schedule?.halls;
-
-          return {
-            id: b.id,
-            userId,
-            screenTimeId: screenTime?.id || 0,
-            movieTitle: movie?.title || '영화 정보 없음',
-            posterUrl: movie?.poster_url || '',
-            theaterName: theater?.name || '극장 정보 없음',
-            hallName: hall?.name || '상영관 정보 없음',
-            playDate: schedule?.play_date || '',
-            playTime: screenTime?.start_time?.substring(0, 5) || '',
-            seats: (b.booked_seats || []).map((s: any) => s.seat_id),
-            totalPrice: b.total_price,
-            paymentMethod: b.payment_method,
-            createdAt: b.created_at
-          };
-        });
+    try {
+      const res = await fetch(`/api/bookings?userId=${userId}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data && !data.error && !data.mock) return data;
       }
+    } catch (err) {
+      console.warn("API bookings fetch failed. Falling back to local storage.", err);
     }
 
-    // Local Storage Mock
     if (typeof window !== 'undefined') {
       const bookingsJson = localStorage.getItem('cine_reserve_bookings') || '[]';
       const bookings: Booking[] = JSON.parse(bookingsJson);
@@ -321,25 +276,16 @@ class DatabaseAdapter {
 
   // 7. CineTalk chat stream fetch
   async getChats(movieId: string): Promise<ChatMessage[]> {
-    if (supabase) {
-      const { data, error } = await supabase
-        .from('cinetalk_chats')
-        .select('*')
-        .eq('movie_id', movieId)
-        .order('created_at', { ascending: true });
-
-      if (!error && data) {
-        return data.map((chat: any) => ({
-          id: chat.id,
-          username: chat.username,
-          text: chat.text,
-          time: new Date(chat.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }),
-          movieId: chat.movie_id
-        }));
+    try {
+      const res = await fetch(`/api/cinetalk?movieId=${movieId}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data && !data.error && !data.mock) return data;
       }
+    } catch (err) {
+      console.warn("API chats fetch failed. Falling back to local storage.", err);
     }
 
-    // Local Mock static seeding + storage
     if (typeof window !== 'undefined') {
       const chatsJson = localStorage.getItem(`cine_talk_chats_${movieId}`);
       if (chatsJson) {
@@ -375,26 +321,19 @@ class DatabaseAdapter {
   async sendChat(movieId: string, username: string, text: string): Promise<ChatMessage> {
     const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
     
-    if (supabase) {
-      const { data, error } = await supabase
-        .from('cinetalk_chats')
-        .insert({
-          movie_id: movieId,
-          username,
-          text
-        })
-        .select()
-        .single();
+    try {
+      const res = await fetch('/api/cinetalk', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ movieId, username, text })
+      });
 
-      if (!error && data) {
-        return {
-          id: data.id,
-          username: data.username,
-          text: data.text,
-          time: timeStr,
-          movieId: data.movie_id
-        };
+      if (res.ok) {
+        const data = await res.json();
+        if (data && !data.mock) return data;
       }
+    } catch (err) {
+      console.warn("API send chat failed. Falling back to local storage.", err);
     }
 
     const newChat: ChatMessage = {
@@ -410,7 +349,6 @@ class DatabaseAdapter {
       chats.push(newChat);
       localStorage.setItem(`cine_talk_chats_${movieId}`, JSON.stringify(chats));
 
-      // Trigger realtime mock update
       window.dispatchEvent(new CustomEvent(`cine_talk_chat_sent_${movieId}`, {
         detail: newChat
       }));

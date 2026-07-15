@@ -1,0 +1,120 @@
+datasource db {
+  provider = "postgresql"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Profile {
+  id        String    @id @db.Uuid
+  name      String
+  email     String?   @unique
+  createdAt DateTime  @default(now()) @map("created_at")
+  bookings  Booking[]
+
+  @@map("profiles")
+}
+
+model Movie {
+  id           String     @id
+  title        String
+  englishTitle String?    @map("english_title")
+  director     String?
+  cast         String[]
+  genre        String[]
+  runtime      Int
+  releaseDate  DateTime   @map("release_date") @db.Date
+  synopsis     String?
+  posterUrl    String     @map("poster_url")
+  bannerUrl    String?    @map("banner_url")
+  status       String     // "now-showing" | "upcoming"
+  ageLimit     Int        @default(0) @map("age_limit")
+  rating       Decimal    @default(0.00) @db.Decimal(3, 2)
+  schedules    Schedule[]
+
+  @@map("movies")
+}
+
+model Theater {
+  id        String     @id
+  name      String
+  location  String
+  halls     Hall[]
+  schedules Schedule[]
+
+  @@map("theaters")
+}
+
+model Hall {
+  id        Int        @id @default(autoincrement())
+  theaterId String     @map("theater_id")
+  name      String
+  screenType String     @map("screen_type") // '2D', 'IMAX', '4DX', 'SCREENX', 'DOLBY'
+  totalSeats Int        @default(183) @map("total_seats")
+  theater   Theater    @relation(fields: [theaterId], references: [id], onDelete: Cascade)
+  schedules Schedule[]
+
+  @@map("halls")
+}
+
+model Schedule {
+  id          Int          @id @default(autoincrement())
+  movieId     String       @map("movie_id")
+  theaterId   String       @map("theater_id")
+  hallId      Int          @map("hall_id")
+  playDate    DateTime     @map("play_date") @db.Date
+  movie       Movie        @relation(fields: [movieId], references: [id], onDelete: Cascade)
+  theater     Theater      @relation(fields: [theaterId], references: [id], onDelete: Cascade)
+  hall        Hall         @relation(fields: [hallId], references: [id], onDelete: Cascade)
+  screenTimes ScreenTime[]
+
+  @@unique([movieId, theaterId, hallId, playDate])
+  @@map("schedules")
+}
+
+model ScreenTime {
+  id             Int        @id @default(autoincrement())
+  scheduleId     Int        @map("schedule_id")
+  startTime      String     @map("start_time") // e.g. "10:30"
+  endTime        String     @map("end_time")   // e.g. "13:16"
+  availableSeats Int        @map("available_seats")
+  schedule       Schedule   @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+  bookings       Booking[]
+
+  @@map("screen_times")
+}
+
+model Booking {
+  id           String       @id
+  userId       String?      @map("user_id") @db.Uuid
+  screenTimeId Int          @map("screen_time_id")
+  totalPrice   Int          @map("total_price")
+  paymentMethod String      @map("payment_method")
+  createdAt    DateTime     @default(now()) @map("created_at")
+  profile      Profile?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+  screenTime   ScreenTime   @relation(fields: [screenTimeId], references: [id], onDelete: Restrict)
+  bookedSeats  BookedSeat[]
+
+  @@map("bookings")
+}
+
+model BookedSeat {
+  id        Int     @id @default(autoincrement())
+  bookingId String  @map("booking_id")
+  seatId    String  @map("seat_id")
+  booking   Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+
+  @@unique([bookingId, seatId])
+  @@map("booked_seats")
+}
+
+model CineTalkChat {
+  id        String   @id @default(uuid())
+  movieId   String   @map("movie_id")
+  username  String
+  text      String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("cinetalk_chats")
+}
