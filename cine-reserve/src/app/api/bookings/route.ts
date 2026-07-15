@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
+const isUuid = (str: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const userId = searchParams.get('userId');
@@ -9,14 +11,20 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'Missing userId parameter' }, { status: 400 });
   }
 
+  // If the userId is not a valid UUID (e.g. mock user), return an empty list.
+  // The client-side DB adapter will automatically fall back to fetching mock bookings from Local Storage.
+  if (!isUuid(userId)) {
+    return NextResponse.json([]);
+  }
+
   try {
     if (!prisma) {
-      return NextResponse.json([]); // Client will fall back to local storage history
+      return NextResponse.json([]);
     }
 
     const bookings = await prisma.booking.findMany({
       where: {
-        userId: userId.includes('guest') ? undefined : userId // guest user accounts aren't uuids
+        userId: userId
       },
       include: {
         screenTime: {
@@ -109,7 +117,7 @@ export async function POST(request: Request) {
       const newBooking = await tx.booking.create({
         data: {
           id: bookingId,
-          userId: userId.includes('guest') ? null : userId, // UUID check
+          userId: isUuid(userId) ? userId : null, // Treat mock user as anonymous/guest inside DB
           screenTimeId: parsedScreenTimeId,
           totalPrice,
           paymentMethod
