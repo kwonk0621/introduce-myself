@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Kwon.dev 서비스 로그인 페이지입니다.">
+    <title>로그인 | Kwon.dev</title>
+    
+    <!-- Google Fonts Load -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&family=Outfit:wght@400;500;700&display=swap" rel="stylesheet">
+    
+    <!-- Stylesheet -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- 공통 레이아웃: 헤더 -->
+    <header class="main-header" id="mainHeader">
+        <div class="header-container">
+            <a href="index.html" class="logo" id="logo">Kwon.dev</a>
+            <nav class="nav-menu" id="navMenu">
+                <a href="index.html#about" class="nav-link">About</a>
+                <a href="index.html#projects" class="nav-link">Projects</a>
+                <a href="index.html#contact" class="nav-link">Contact</a>
+                <a href="login.html" class="nav-link active">Login</a>
+            </nav>
+        </div>
+    </header>
+
+    <!-- 공통 레이아웃: 메인 컨텐츠 영역 -->
+    <main class="main-content" id="mainContent">
+        <section class="section-container" id="login">
+            <article class="login-card" id="loginCard">
+                <h2 class="login-title">Welcome Back</h2>
+                <p class="login-subtitle">서비스를 이용하시려면 로그인해 주세요</p>
+                
+                <form class="login-form" id="loginForm" onsubmit="event.preventDefault();">
+                    <div class="input-group">
+                        <label for="email" class="input-label">Email Address</label>
+                        <input type="email" id="email" class="form-input" placeholder="name@example.com" required>
+                    </div>
+                    
+                    <div class="input-group">
+                        <div class="label-wrapper">
+                            <label for="password" class="input-label">Password</label>
+                            <a href="#" class="forgot-link">Forgot password?</a>
+                        </div>
+                        <input type="password" id="password" class="form-input" placeholder="••••••••" required>
+                    </div>
+                    
+                    <button type="submit" class="btn-login" id="loginButton">Sign In</button>
+                </form>
+
+                <div class="divider">
+                    <span>or continue with</span>
+                </div>
+
+                <div class="social-login">
+                    <button class="btn-social" id="socialGithub">
+                        <span class="social-text">GitHub</span>
+                    </button>
+                    <button class="btn-social" id="socialGoogle">
+                        <span class="social-text">Google</span>
+                    </button>
+                </div>
+
+                <p class="signup-prompt">
+                    Don't have an account? <a href="#" class="signup-link">Sign up</a>
+                </p>
+            </article>
+        </section>
+    </main>
+
+    <!-- 공통 레이아웃: 푸터 -->
+    <footer class="main-footer" id="mainFooter">
+        <div class="footer-container">
+            <p class="copyright">&copy; 2026 Kwon. All rights reserved.</p>
+            <div class="footer-links">
+                <a href="#" class="footer-link">GitHub</a>
+                <a href="#" class="footer-link">LinkedIn</a>
+            </div>
+        </div>
+    </footer>
+</body>
+</html>
